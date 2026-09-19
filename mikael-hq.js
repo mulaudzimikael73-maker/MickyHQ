@@ -16,12 +16,12 @@ async function loadAnnoy(){
   try{
     const d=await api("annoy_state");
     const left=d.cooldownUntil?fmtCooldown(d.cooldownUntil):null;
-    document.querySelectorAll(".annoy-btn").forEach(b=>b.disabled=!!left);
+    document.querySelectorAll("#annoyGrid .annoy-btn").forEach(b=>b.disabled=!!left);
     if(left)$("annoyStatus").textContent=`😤 Lizzy hit STOP ANNOYING ME — locked out for ${left}.`;
     else $("annoyStatus").textContent="✅ Ready. Pick an effect below.";
   }catch(e){$("annoyStatus").textContent=e.message}
 }
-document.querySelectorAll(".annoy-btn").forEach(b=>b.onclick=async()=>{
+document.querySelectorAll("#annoyGrid .annoy-btn").forEach(b=>b.onclick=async()=>{
   const effect=b.dataset.effect;
   $("annoyResult").textContent="Sending…";
   try{
