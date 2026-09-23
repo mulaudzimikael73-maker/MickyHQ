@@ -1,0 +1,59 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mikael HQ — Letters & Chess</title><link rel="stylesheet" href="mikael-hq.css"></head><body>
+<div id="login" class="screen"><div class="login-card"><div class="seal">🖤</div><p class="eyebrow">LIZZYOS // PRIVATE SYSTEM</p><h1>MIKAEL HQ</h1><p>Your private place to receive Lizzy's letters and play chess.</p><input id="hqKey" type="password" placeholder="HQ access key" autocomplete="off"><button id="loginBtn">Enter HQ</button><div id="loginStatus"></div></div></div>
+<div id="app" class="hidden"><aside><div class="brand">🖤 <b>MIKAEL HQ</b></div><nav><button data-view="letters" class="active">💌 Letters</button><button data-view="chess">♟️ Chess</button><button data-view="lessons">🧠 Lizzy Lessons</button><button data-view="mood">💗 My Mood</button><button data-view="annoy">😈 Annoy Lizzy</button></nav><button id="logoutBtn">Lock HQ</button></aside><main><header><p class="eyebrow">PRIVATE COMMAND CENTRE</p><h2 id="viewTitle">Letters from Lizzy</h2></header>
+<section id="letters" class="view"><div class="section-intro"><div><span class="pill">TWO-WAY</span><h2>💌 Letters from Lizzy</h2><p>When Lizzy writes, her letter appears here. You can reply directly.</p></div><div class="intro-actions"><button class="primary" id="refreshLetters">↻ Refresh</button><button class="danger" id="clearLetters">🧹 Clear Everything</button></div></div><div id="lettersList"></div></section>
+<section id="chess" class="view hidden"><div class="section-intro"><div><span class="pill">2 PLAYER</span><h2>♟️ Mikael × Lizzy Chess</h2><p>You are Black. Lizzy is White.</p></div><div class="turn" id="chessTurn">Loading…</div></div><div class="chess-layout"><div class="card board-card"><div class="chess-board-wrap"><div id="chessBoard" class="board"></div></div><div class="board-actions"><button id="resetChess">New Game</button><button id="refreshChess">↻ Sync</button></div></div><div class="card"><h3>🎓 Teach Lizzy</h3><div id="helpRequests" class="help-requests empty">No requests.</div><textarea id="hintText" placeholder="Write an explanation or hint for Lizzy…"></textarea><button class="primary" id="sendHint">Send to Lizzy</button><hr><h3>📜 Move history</h3><div id="moveHistory" class="moves">—</div></div></div></section>
+
+<section id="lessons" class="view hidden"><div class="section-intro"><div><span class="pill">SHE WRITES, YOU GRADE</span><h2>🧠 Lizzy Lessons</h2><p>Lizzy's own "Life Lessons" — written from her side of LizzyOS. Rate each one and your verdict shows up in her inbox.</p></div><div class="intro-actions"><button class="primary" id="refreshLessons">↻ Refresh</button><button class="danger" id="clearLessons">🧹 Clear Everything</button></div></div><div id="lessonsList"></div></section>
+
+<section id="mood" class="view hidden">
+  <div class="section-intro"><div><span class="pill">SYNCED FEELINGS</span><h2>💗 My Mood</h2><p>Pick a mood below, or type your own. Lizzy's Today's Connection screen shows this next to her own mood.</p></div></div>
+
+  <div class="card">
+    <div id="moodCurrent" class="turn">Loading…</div>
+  </div>
+
+  <div class="card">
+    <h3>Quick pick</h3>
+    <div id="moodGrid" class="annoy-grid"></div>
+  </div>
+
+  <div class="card">
+    <h3>Write your own</h3>
+    <textarea id="moodText" placeholder="Say how you're actually feeling…"></textarea>
+    <button class="primary" id="moodSendBtn">Set Mood</button>
+    <div id="moodResult" class="meta" style="margin-top:10px"></div>
+  </div>
+</section>
+
+<section id="annoy" class="view hidden">
+  <div class="section-intro"><div><span class="pill">USE RESPONSIBLY</span><h2>😈 Annoy Lizzy</h2><p>Fires on her device next time it polls (a few seconds). She has a real "STOP ANNOYING ME" button — if she's used it, this is locked out until the cooldown clears.</p></div><div class="intro-actions"><button class="primary" id="annoyRefreshBtn">↻ Refresh Status</button><button id="annoyResetBtn">⏱️ Reset Timer</button></div></div>
+
+  <div class="card">
+    <div id="annoyStatus" class="turn">Loading…</div>
+  </div>
+
+  <div class="card">
+    <h3>Pick an effect</h3>
+    <div id="annoyGrid" class="annoy-grid">
+      <button class="annoy-btn" data-effect="random">🎲 Random</button>
+      <button class="annoy-btn" data-effect="button_move">🖱️ Button That Moves</button>
+      <button class="annoy-btn" data-effect="infinite_loading">⏳ Infinite Loading</button>
+      <button class="annoy-btn" data-effect="keyboard_chaos">⌨️ Keyboard Chaos</button>
+      <button class="annoy-btn" data-effect="mikael_appears">🖤 Mikael Appears</button>
+      <button class="annoy-btn" data-effect="attitude_meter">📊 Attitude Meter</button>
+      <button class="annoy-btn" data-effect="upside_down">🙃 Upside Down</button>
+      <button class="annoy-btn" data-effect="screen_wobble">📳 Screen Wobble</button>
+      <button class="annoy-btn" data-effect="unskippable_ad">📺 Unskippable Ad</button>
+      <button class="annoy-btn" data-effect="did_you_know">💡 Did You Know?</button>
+      <button class="annoy-btn" data-effect="petty_tax">💸 Petty MB Tax</button>
+      <button class="annoy-btn" data-effect="airhorn">📯 Airhorn</button>
+      <button class="annoy-btn" data-effect="captcha_joke">🤖 CAPTCHA Joke</button>
+      <button class="annoy-btn" data-effect="eyes_follow">👀 Eyes Follow You</button>
+      <button class="annoy-btn" data-effect="balloon_pop">🎈 Balloon Pop</button>
+      <button class="annoy-btn" data-effect="fake_update">🔄 Fake Update</button>
+    </div>
+    <div id="annoyResult" class="meta" style="margin-top:10px"></div>
+  </div>
+</section>
+</main></div><script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script><script src="chess-fallback.js"></script><script src="mikael-hq.js"></script></body></html>
