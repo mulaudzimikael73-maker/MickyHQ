@@ -101,4 +101,55 @@ $("moodSendBtn")?.addEventListener("click",async()=>{
   try{await postMood(text);$("moodText").value="";$("moodResult").textContent="💗 Mood set.";loadMood()}
   catch(e){$("moodResult").textContent=e.message}
 });
+
+// ---- MizzyGram HQ ----
+const MG_ACCTS=[["mikael","🖤 Mikael"],["bankofmicky","💰 @BankOfMicky"],["bowlingfederation","🎳 @BowlingFederation"],["chocolateemergency","🍫 @ChocolateEmergency"],["mickysdailynews","📰 @MickysDailyNews"]];
+const MG_REACTS=[["love","❤️ Love"],["funny","😂 Funny"],["attitude","😈 Attitude"],["cute","😍 Cute"],["fire","🔥 Fire"],["bowling","🎳 Bowling"],["chocolate","🍫 Chocolate"],["suspicious","👀 Suspicious"]];
+let mgAcct="mikael",mgSnap=null;
+function mgAcctBtns(){$("mgAccounts").innerHTML=MG_ACCTS.map(([id,l])=>`<button class="annoy-btn ${id===mgAcct?"picked":""}" data-mg-acct="${id}">${l}</button>`).join("");document.querySelectorAll("[data-mg-acct]").forEach(b=>b.onclick=()=>{mgAcct=b.dataset.mgAcct;mgAcctBtns()})}
+mgAcctBtns();
+$("mgMood").innerHTML='<option value="">🙂 Mood: none</option>'+MOOD_OPTIONS.map(([id,l])=>`<option value="${esc(l)}">${esc(l)}</option>`).join("");
+$("mgReaction").innerHTML=MG_REACTS.map(([id,l])=>`<option value="${id}">${l}</option>`).join("");
+function mgImage(file){return new Promise((res,rej)=>{const u=URL.createObjectURL(file),i=new Image();i.onload=()=>{const k=Math.min(1,900/Math.max(i.naturalWidth,i.naturalHeight)),c=document.createElement("canvas");c.width=Math.round(i.naturalWidth*k);c.height=Math.round(i.naturalHeight*k);const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);x.drawImage(i,0,0,c.width,c.height);URL.revokeObjectURL(u);res(c.toDataURL("image/jpeg",.8))};i.onerror=()=>rej(new Error("Couldn't read that photo."));i.src=u})}
+const mgPush=command=>api("mg_hq_push",{command});
+async function loadMg(){
+  try{
+    mgSnap=(await api("mg_snapshot_get")).snapshot;
+    const posts=(mgSnap?.posts||[]).filter(p=>p.userId==="lizzy");
+    $("mgPostSel").innerHTML='<option value="latest">Lizzy\'s latest post</option>'+posts.map(p=>`<option value="${esc(p.id)}">${esc((p.caption||"(photo)").slice(0,50))}</option>`).join("");
+    fillComments();
+  }catch(e){$("mgActResult").textContent="No posts synced yet — open MizzyGram on Lizzy's device. ("+e.message+")"}
+}
+function fillComments(){
+  const id=$("mgPostSel").value,p=(mgSnap?.posts||[]).find(x=>x.id===id)||(mgSnap?.posts||[]).find(x=>x.userId==="lizzy");
+  $("mgCommentSel").innerHTML='<option value="">— comment: none (top-level) —</option>'+(p?.comments||[]).map(c=>`<option value="${esc(c.id)}">${c.pinned?"📌 ":""}@${esc(c.userId)}: ${esc(c.text)}</option>`).join("");
+}
+$("mgPostSel").onchange=fillComments;
+$("mgRefresh").onclick=loadMg;
+document.querySelector('[data-view="mizzygram"]').addEventListener("click",()=>{$("viewTitle").textContent="📸 MizzyGram HQ";loadMg()});
+$("mgPost").onclick=async()=>{
+  const caption=$("mgCaption").value.trim(),f=$("mgPhoto").files[0];
+  if(!caption&&!f&&!$("mgTags").value.trim()){$("mgPostResult").textContent="Add a photo, caption or hashtags first.";return}
+  $("mgPostResult").textContent="Sending…";
+  try{
+    const image=f?await mgImage(f):null;
+    await mgPush({kind:"post",account:mgAcct,image,caption,tags:$("mgTags").value,mood:$("mgMood").value,audience:$("mgAudience").value});
+    $("mgPostResult").textContent="✅ Queued — posting as "+mgAcct+".";
+    $("mgCaption").value="";$("mgTags").value="";$("mgPhoto").value="";
+  }catch(e){$("mgPostResult").textContent=e.message}
+};
+document.querySelectorAll("[data-mg-act]").forEach(b=>b.onclick=async()=>{
+  const act=b.dataset.mgAct,postId=$("mgPostSel").value||"latest",cid=$("mgCommentSel").value,text=$("mgText").value.trim();
+  if((act==="comment"||act==="reply")&&!text){$("mgActResult").textContent="Write some text first.";return}
+  if((act==="reply"||act==="pin")&&!cid){$("mgActResult").textContent="Pick a comment first.";return}
+  const cmd={kind:act,postId};
+  if(act==="react")cmd.reaction=$("mgReaction").value;
+  if(act==="comment"||act==="reply")cmd.text=text;
+  if(act==="reply")cmd.parentId=cid;
+  if(act==="pin")cmd.commentId=cid;
+  try{await mgPush(cmd);$("mgActResult").textContent="✅ Queued: "+act;if(cmd.text)$("mgText").value=""}catch(e){$("mgActResult").textContent=e.message}
+});
+document.querySelectorAll("[data-mg-event]").forEach(b=>b.onclick=async()=>{
+  try{await mgPush({kind:"event",event:b.dataset.mgEvent});$("mgEvResult").textContent="✅ Triggered: "+b.textContent}catch(e){$("mgEvResult").textContent=e.message}
+});
 })();

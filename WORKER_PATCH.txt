@@ -1,0 +1,41 @@
+MICKYHQ — WORKER PATCH (safest if your live worker differs from the one I patched)
+=================================================================================
+Open your cloudflare-worker.js and add TWO blocks. Nothing else changes.
+
+BLOCK 1 — paste inside the GET section, directly ABOVE this existing line:
+   if(u.searchParams.get("action")==="annoy_state"){
+-------------------------------------------------------------------------
+   if(u.searchParams.get("action")==="mg_queue"){const commands=await arrKV(env,"mg:queue:v1");return json({success:true,commands});}
+-------------------------------------------------------------------------
+
+BLOCK 2 — paste inside the POST section, directly ABOVE this existing line:
+   if((b.action||b.type)==="annoy_trigger"){
+-------------------------------------------------------------------------
+/* ---- MizzyGram HQ bridge: HQ pushes commands, Lizzy's MizzyGram polls + acks ---- */
+if((b.action||b.type)==="mg_hq_push"){
+  if(!hqOnly(req,env,b))return json({success:false,error:"Unauthorized"},401);
+  const c=b.command||{};
+  if(!["post","like","react","comment","reply","pin","event"].includes(c.kind))return json({success:false,error:"Unknown command"},400);
+  if(String(c.image||"").length>700000)return json({success:false,error:"Image too large"},400);
+  const q=await arrKV(env,"mg:queue:v1");
+  q.push({...c,id:crypto.randomUUID(),createdAt:new Date().toISOString()});
+  await env.LIZZY_CLAIMS.put("mg:queue:v1",JSON.stringify(q.slice(-30)));
+  return json({success:true});
+}
+if((b.action||b.type)==="mg_ack"){
+  const ids=Array.isArray(b.ids)?b.ids:[];
+  const q=(await arrKV(env,"mg:queue:v1")).filter(c=>!ids.includes(c.id));
+  await env.LIZZY_CLAIMS.put("mg:queue:v1",JSON.stringify(q));
+  return json({success:true});
+}
+if((b.action||b.type)==="mg_snapshot_put"){
+  if(JSON.stringify(b.snapshot||{}).length>200000)return json({success:false,error:"Too large"},400);
+  await env.LIZZY_CLAIMS.put("mg:snapshot:v1",JSON.stringify(b.snapshot||{}));
+  return json({success:true});
+}
+if((b.action||b.type)==="mg_snapshot_get"){
+  if(!hqOnly(req,env,b))return json({success:false,error:"Unauthorized"},401);
+  return json({success:true,snapshot:await env.LIZZY_CLAIMS.get("mg:snapshot:v1",{type:"json"})});
+}
+-------------------------------------------------------------------------
+Then deploy the worker.

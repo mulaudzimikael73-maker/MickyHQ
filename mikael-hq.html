@@ -1,6 +1,6 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mikael HQ — Letters & Chess</title><link rel="stylesheet" href="mikael-hq.css"></head><body>
 <div id="login" class="screen"><div class="login-card"><div class="seal">🖤</div><p class="eyebrow">LIZZYOS // PRIVATE SYSTEM</p><h1>MIKAEL HQ</h1><p>Your private place to receive Lizzy's letters and play chess.</p><input id="hqKey" type="password" placeholder="HQ access key" autocomplete="off"><button id="loginBtn">Enter HQ</button><div id="loginStatus"></div></div></div>
-<div id="app" class="hidden"><aside><div class="brand">🖤 <b>MIKAEL HQ</b></div><nav><button data-view="letters" class="active">💌 Letters</button><button data-view="chess">♟️ Chess</button><button data-view="lessons">🧠 Lizzy Lessons</button><button data-view="mood">💗 My Mood</button><button data-view="annoy">😈 Annoy Lizzy</button></nav><button id="logoutBtn">Lock HQ</button></aside><main><header><p class="eyebrow">PRIVATE COMMAND CENTRE</p><h2 id="viewTitle">Letters from Lizzy</h2></header>
+<div id="app" class="hidden"><aside><div class="brand">🖤 <b>MIKAEL HQ</b></div><nav><button data-view="letters" class="active">💌 Letters</button><button data-view="chess">♟️ Chess</button><button data-view="lessons">🧠 Lizzy Lessons</button><button data-view="mood">💗 My Mood</button><button data-view="annoy">😈 Annoy Lizzy</button><button data-view="mizzygram">📸 MizzyGram</button></nav><button id="logoutBtn">Lock HQ</button></aside><main><header><p class="eyebrow">PRIVATE COMMAND CENTRE</p><h2 id="viewTitle">Letters from Lizzy</h2></header>
 <section id="letters" class="view"><div class="section-intro"><div><span class="pill">TWO-WAY</span><h2>💌 Letters from Lizzy</h2><p>When Lizzy writes, her letter appears here. You can reply directly.</p></div><div class="intro-actions"><button class="primary" id="refreshLetters">↻ Refresh</button><button class="danger" id="clearLetters">🧹 Clear Everything</button></div></div><div id="lettersList"></div></section>
 <section id="chess" class="view hidden"><div class="section-intro"><div><span class="pill">2 PLAYER</span><h2>♟️ Mikael × Lizzy Chess</h2><p>You are Black. Lizzy is White.</p></div><div class="turn" id="chessTurn">Loading…</div></div><div class="chess-layout"><div class="card board-card"><div class="chess-board-wrap"><div id="chessBoard" class="board"></div></div><div class="board-actions"><button id="resetChess">New Game</button><button id="refreshChess">↻ Sync</button></div></div><div class="card"><h3>🎓 Teach Lizzy</h3><div id="helpRequests" class="help-requests empty">No requests.</div><textarea id="hintText" placeholder="Write an explanation or hint for Lizzy…"></textarea><button class="primary" id="sendHint">Send to Lizzy</button><hr><h3>📜 Move history</h3><div id="moveHistory" class="moves">—</div></div></div></section>
 
@@ -55,5 +55,23 @@
     </div>
     <div id="annoyResult" class="meta" style="margin-top:10px"></div>
   </div>
+</section>
+<section id="mizzygram" class="view hidden">
+  <div class="section-intro"><div><span class="pill">LIVE ON LIZZY'S MIZZYGRAM</span><h2>📸 MizzyGram HQ</h2><p>Lands on Lizzy's MizzyGram within ~10 seconds, while it's open on her device.</p></div><div class="intro-actions"><button class="primary" id="mgRefresh">↻ Refresh posts</button></div></div>
+  <div class="card"><h3>Create MizzyGram Post</h3>
+    <div id="mgAccounts" class="annoy-grid"></div>
+    <label class="mgLbl">Photo (optional — a caption card is made if empty)</label><input type="file" id="mgPhoto" accept="image/*">
+    <textarea id="mgCaption" placeholder="Caption…"></textarea>
+    <input id="mgTags" placeholder="Hashtags, e.g. BowlingQueen MrPerfect">
+    <div class="mgRow"><select id="mgMood"></select><select id="mgAudience"><option value="everyone">🌍 Audience: Everyone</option><option value="lizzy">💗 Audience: Lizzy only</option></select></div>
+    <button class="primary" id="mgPost">Post</button><div id="mgPostResult" class="meta" style="margin-top:10px"></div></div>
+  <div class="card"><h3>Mikael Interaction Control</h3>
+    <select id="mgPostSel"></select><select id="mgCommentSel"></select>
+    <textarea id="mgText" placeholder="Comment or reply text…"></textarea><select id="mgReaction"></select>
+    <div class="annoy-grid"><button class="annoy-btn" data-mg-act="like">❤️ Like post</button><button class="annoy-btn" data-mg-act="react">😍 Send reaction</button><button class="annoy-btn" data-mg-act="comment">💬 Comment</button><button class="annoy-btn" data-mg-act="reply">↩️ Reply</button><button class="annoy-btn" data-mg-act="pin">📌 Pin comment</button></div>
+    <div id="mgActResult" class="meta" style="margin-top:10px"></div></div>
+  <div class="card"><h3>Trigger MizzyGram Event</h3>
+    <div class="annoy-grid"><button class="annoy-btn" data-mg-event="viral">🔥 Viral Moment</button><button class="annoy-btn" data-mg-event="bowling">🎳 Bowling Challenge</button><button class="annoy-btn" data-mg-event="breaking">📰 Breaking News</button><button class="annoy-btn" data-mg-event="mystery">👀 Mystery Account</button><button class="annoy-btn" data-mg-event="mikael">💗 Mikael Surprise</button></div>
+    <div id="mgEvResult" class="meta" style="margin-top:10px"></div></div>
 </section>
 </main></div><script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script><script src="chess-fallback.js"></script><script src="mikael-hq.js"></script></body></html>

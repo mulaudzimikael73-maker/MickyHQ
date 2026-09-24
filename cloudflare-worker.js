@@ -394,6 +394,7 @@ export default{async fetch(req,env){
  if(req.method==="GET"){
    if(u.searchParams.get("action")==="coop_chess"){const state=await env.LIZZY_CLAIMS.get(HQ_CHESS_KEY,{type:"json"})||defaultChess();return json({success:true,state});}
    if(u.searchParams.get("action")==="lizzy_messages"){const messages=await hqMessages(env);return json({success:true,messages:messages.filter(x=>x.status!=="handled").slice(-50)});}
+   if(u.searchParams.get("action")==="mg_queue"){const commands=await arrKV(env,"mg:queue:v1");return json({success:true,commands});}
    if(u.searchParams.get("action")==="annoy_state"){
      const pending=await getAnnoyPending(env);
      const cooldown=await getAnnoyCooldown(env);
@@ -737,6 +738,32 @@ if(b.action==="send_chess_hint"){
 /* =========================================================
    😈 MIKAEL HQ REMOTE ANNOYANCE
    ========================================================= */
+/* ---- MizzyGram HQ bridge: HQ pushes commands, Lizzy's MizzyGram polls + acks ---- */
+if((b.action||b.type)==="mg_hq_push"){
+  if(!hqOnly(req,env,b))return json({success:false,error:"Unauthorized"},401);
+  const c=b.command||{};
+  if(!["post","like","react","comment","reply","pin","event"].includes(c.kind))return json({success:false,error:"Unknown command"},400);
+  if(String(c.image||"").length>700000)return json({success:false,error:"Image too large"},400);
+  const q=await arrKV(env,"mg:queue:v1");
+  q.push({...c,id:crypto.randomUUID(),createdAt:new Date().toISOString()});
+  await env.LIZZY_CLAIMS.put("mg:queue:v1",JSON.stringify(q.slice(-30)));
+  return json({success:true});
+}
+if((b.action||b.type)==="mg_ack"){
+  const ids=Array.isArray(b.ids)?b.ids:[];
+  const q=(await arrKV(env,"mg:queue:v1")).filter(c=>!ids.includes(c.id));
+  await env.LIZZY_CLAIMS.put("mg:queue:v1",JSON.stringify(q));
+  return json({success:true});
+}
+if((b.action||b.type)==="mg_snapshot_put"){
+  if(JSON.stringify(b.snapshot||{}).length>200000)return json({success:false,error:"Too large"},400);
+  await env.LIZZY_CLAIMS.put("mg:snapshot:v1",JSON.stringify(b.snapshot||{}));
+  return json({success:true});
+}
+if((b.action||b.type)==="mg_snapshot_get"){
+  if(!hqOnly(req,env,b))return json({success:false,error:"Unauthorized"},401);
+  return json({success:true,snapshot:await env.LIZZY_CLAIMS.get("mg:snapshot:v1",{type:"json"})});
+}
 if((b.action||b.type)==="annoy_trigger"){
   if(!hqOnly(req,env,b))return json({success:false,error:"Unauthorized"},401);
   const cooldown=await getAnnoyCooldown(env);
