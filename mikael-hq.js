@@ -102,54 +102,89 @@ $("moodSendBtn")?.addEventListener("click",async()=>{
   catch(e){$("moodResult").textContent=e.message}
 });
 
-// ---- MizzyGram HQ ----
-const MG_ACCTS=[["mikael","🖤 Mikael"],["bankofmicky","💰 @BankOfMicky"],["bowlingfederation","🎳 @BowlingFederation"],["chocolateemergency","🍫 @ChocolateEmergency"],["mickysdailynews","📰 @MickysDailyNews"]];
-const MG_REACTS=[["love","❤️ Love"],["funny","😂 Funny"],["attitude","😈 Attitude"],["cute","😍 Cute"],["fire","🔥 Fire"],["bowling","🎳 Bowling"],["chocolate","🍫 Chocolate"],["suspicious","👀 Suspicious"]];
-let mgAcct="mikael",mgSnap=null;
-function mgAcctBtns(){$("mgAccounts").innerHTML=MG_ACCTS.map(([id,l])=>`<button class="annoy-btn ${id===mgAcct?"picked":""}" data-mg-acct="${id}">${l}</button>`).join("");document.querySelectorAll("[data-mg-acct]").forEach(b=>b.onclick=()=>{mgAcct=b.dataset.mgAcct;mgAcctBtns()})}
-mgAcctBtns();
-$("mgMood").innerHTML='<option value="">🙂 Mood: none</option>'+MOOD_OPTIONS.map(([id,l])=>`<option value="${esc(l)}">${esc(l)}</option>`).join("");
-$("mgReaction").innerHTML=MG_REACTS.map(([id,l])=>`<option value="${id}">${l}</option>`).join("");
-function mgImage(file){return new Promise((res,rej)=>{const u=URL.createObjectURL(file),i=new Image();i.onload=()=>{const k=Math.min(1,900/Math.max(i.naturalWidth,i.naturalHeight)),c=document.createElement("canvas");c.width=Math.round(i.naturalWidth*k);c.height=Math.round(i.naturalHeight*k);const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);x.drawImage(i,0,0,c.width,c.height);URL.revokeObjectURL(u);res(c.toDataURL("image/jpeg",.8))};i.onerror=()=>rej(new Error("Couldn't read that photo."));i.src=u})}
+// ---- MizzyGram Control Room ----
+const MG_ACCTS=[["mikael","🖤","#4c4c72","#181828"],["bankofmicky","💰","#2f8f5b","#123322"],["bowlingfederation","🎳","#ffb84c","#e8317f"],["chocolateemergency","🍫","#8a5a2c","#3a220f"],["mickysdailynews","📰","#c9c9d6","#4a4a5a"],["thepresident","🏛️","#2a4a9a","#0b1633"]];
+const MG_REACTS=[["love","❤️"],["funny","😂"],["attitude","😈"],["cute","😍"],["fire","🔥"],["bowling","🎳"],["chocolate","🍫"],["suspicious","👀"]];
+const MG_R=Object.fromEntries(MG_REACTS);
+let mgAcct="mikael",mgAud="everyone",mgSnap=null,mgPhotoData=null,mgReply=null;
+const mgInfo=id=>MG_ACCTS.find(a=>a[0]===id)||(id==="lizzy"?["lizzy","💗","#ff8fce","#7a35dc"]:[id,"🙂","#888","#444"]);
+const mgAv=id=>{const a=mgInfo(id);return `<span class="mgAva" style="background:linear-gradient(135deg,${a[2]},${a[3]})">${a[1]}</span>`};
+const mgTag=t=>esc(t).replace(/#(\w+)/g,'<b class="mgTag">#$1</b>');
+const mgAgo=t=>{const s=(Date.now()-t)/1000;return s<60?"now":s<3600?Math.floor(s/60)+"m":s<86400?Math.floor(s/3600)+"h":Math.floor(s/86400)+"d"};
+const mgTags=()=>$("mgTags").value.split(/[\s,]+/).filter(Boolean).map(t=>"#"+t.replace(/^#+/,"")).join(" ");
+function mgToast(m){let t=$("mgToast");if(!t){t=document.createElement("div");t.id="mgToast";document.body.appendChild(t)}t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),2400)}
 const mgPush=command=>api("mg_hq_push",{command});
-async function loadMg(){
-  try{
-    mgSnap=(await api("mg_snapshot_get")).snapshot;
-    const posts=(mgSnap?.posts||[]).filter(p=>p.userId==="lizzy");
-    $("mgPostSel").innerHTML='<option value="latest">Lizzy\'s latest post</option>'+posts.map(p=>`<option value="${esc(p.id)}">${esc((p.caption||"(photo)").slice(0,50))}</option>`).join("");
-    fillComments();
-  }catch(e){$("mgActResult").textContent="No posts synced yet — open MizzyGram on Lizzy's device. ("+e.message+")"}
+function mgImage(file){return new Promise((res,rej)=>{const u=URL.createObjectURL(file),i=new Image();i.onload=()=>{const k=Math.min(1,900/Math.max(i.naturalWidth,i.naturalHeight)),c=document.createElement("canvas");c.width=Math.round(i.naturalWidth*k);c.height=Math.round(i.naturalHeight*k);const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);x.drawImage(i,0,0,c.width,c.height);URL.revokeObjectURL(u);res(c.toDataURL("image/jpeg",.8))};i.onerror=()=>rej(new Error("Couldn't read that photo."));i.src=u})}
+
+function mgAccounts(){
+  $("mgAccounts").innerHTML=MG_ACCTS.map(a=>`<button class="mgAcct ${a[0]===mgAcct?"on":""}" data-acct="${a[0]}">${mgAv(a[0])}<small>${a[0]==="mikael"?"Mikael":"@"+a[0]}</small></button>`).join("");
 }
-function fillComments(){
-  const id=$("mgPostSel").value,p=(mgSnap?.posts||[]).find(x=>x.id===id)||(mgSnap?.posts||[]).find(x=>x.userId==="lizzy");
-  $("mgCommentSel").innerHTML='<option value="">— comment: none (top-level) —</option>'+(p?.comments||[]).map(c=>`<option value="${esc(c.id)}">${c.pinned?"📌 ":""}@${esc(c.userId)}: ${esc(c.text)}</option>`).join("");
+function mgPreview(){
+  const a=mgInfo(mgAcct),cap=($("mgCaption").value+" "+mgTags()).trim(),mood=$("mgMood").value;
+  const img=mgPhotoData?`<img src="${mgPhotoData}" alt="">`:`<div class="mgCardArt" style="background:linear-gradient(135deg,${a[2]},${a[3]})"><i>${a[1]}</i><p>${esc(($("mgCaption").value||"Your caption shows up here").slice(0,80))}</p></div>`;
+  $("mgPreview").innerHTML=`<div class="mgPH">${mgAv(mgAcct)}<b>${a[0]}</b>${mood?`<small class="mgMood">${esc(mood)}</small>`:""}${mgAud==="lizzy"?`<small class="mgMood">💗 just for Lizzy</small>`:""}<time>now</time></div><div class="mgImg">${img}</div><div class="mgIcons"><span>♡</span><span>💬</span><span>➤</span><span class="r">🔖</span></div><div class="mgCap"><b>${a[0]}</b> ${mgTag(cap)}</div>`;
 }
-$("mgPostSel").onchange=fillComments;
-$("mgRefresh").onclick=loadMg;
-document.querySelector('[data-view="mizzygram"]').addEventListener("click",()=>{$("viewTitle").textContent="📸 MizzyGram HQ";loadMg()});
+function mgFeed(){
+  const posts=mgSnap?.posts||[];
+  $("mgLive").textContent=mgSnap?"● synced "+new Date(mgSnap.at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):"○ no sync yet";
+  $("mgLive").classList.toggle("on",!!mgSnap);
+  if(!posts.length){$("mgFeed").innerHTML='<div class="mgEmpty">No posts synced yet.<br>Open MizzyGram on Lizzy\'s device.</div>';return}
+  $("mgFeed").innerHTML=posts.slice(0,12).map(p=>{
+    const rx=Object.entries(p.rx||{}).map(([r,n])=>`${MG_R[r]||""} ${n}`).join("  "),cs=(p.comments||[]).slice(-6);
+    return `<article class="mgPost" data-p="${esc(p.id)}"><div class="mgPH">${mgAv(p.userId)}<b>${esc(p.userId)}</b>${p.mood?`<small class="mgMood">${esc(p.mood)}</small>`:""}<time>${mgAgo(p.createdAt)}</time></div>
+      <div class="mgCap">${mgTag(p.caption||"📷 photo")}</div>
+      <div class="mgRx">${rx||'<span class="mgDim">No reactions yet</span>'}</div>
+      <div class="mgBar"><button class="mgLike ${p.mine==="love"?"on":""}" data-like="${esc(p.id)}">${p.mine==="love"?"❤️ Liked":"🤍 Like"}</button><span class="mgStrip">${MG_REACTS.map(([r,e])=>`<button class="${p.mine===r?"on":""}" data-react="${r}" data-id="${esc(p.id)}" aria-label="${r}">${e}</button>`).join("")}</span></div>
+      ${cs.map(c=>`<div class="mgC ${c.parentId?"reply":""}"><span><b>@${esc(c.userId)}</b> ${c.pinned?"📌 ":""}${esc(c.text)}</span><span class="mgCA"><button data-reply="${esc(c.id)}" data-id="${esc(p.id)}" data-u="${esc(c.userId)}">Reply</button><button data-pin="${esc(c.id)}" data-id="${esc(p.id)}">${c.pinned?"Pinned":"📌 Pin"}</button></span></div>`).join("")}
+      <form class="mgCmt" data-id="${esc(p.id)}"><input maxlength="300" placeholder="${mgReply&&mgReply.p===p.id?"Replying to @"+esc(mgReply.u)+"…":"Comment as Mikael…"}"><button class="primary">Send</button></form></article>`;
+  }).join("");
+}
+async function mgLoad(){
+  try{const s=(await api("mg_snapshot_get")).snapshot;if(s&&(!mgSnap||s.at!==mgSnap.at)){mgSnap=s;if(!document.activeElement.closest?.("#mgFeed"))mgFeed()}else if(!mgSnap)mgFeed()}
+  catch(e){$("mgLive").textContent="○ "+e.message}
+}
+const mgPost=id=>(mgSnap?.posts||[]).find(p=>p.id===id);
+mgAccounts();mgPreview();mgFeed();
+$("mgMood").innerHTML='<option value="">🙂 Mood: none</option>'+MOOD_OPTIONS.map(([id,l])=>`<option value="${esc(l)}">${esc(l)}</option>`).join("");
+$("mgAccounts").onclick=e=>{const b=e.target.closest("[data-acct]");if(b){mgAcct=b.dataset.acct;mgAccounts();mgPreview()}};
+$("mgAud").onclick=e=>{const b=e.target.closest("[data-aud]");if(!b)return;mgAud=b.dataset.aud;document.querySelectorAll("#mgAud button").forEach(x=>x.classList.toggle("on",x===b));mgPreview()};
+["mgCaption","mgTags","mgMood"].forEach(id=>$(id).addEventListener("input",mgPreview));
+$("mgPhoto").onchange=async e=>{const f=e.target.files[0];if(!f){mgPhotoData=null}else{try{mgPhotoData=await mgImage(f)}catch(x){mgToast(x.message)}}$("mgPhotoLbl").textContent=mgPhotoData?"📷 Change photo":"📷 Add a photo";mgPreview()};
 $("mgPost").onclick=async()=>{
-  const caption=$("mgCaption").value.trim(),f=$("mgPhoto").files[0];
-  if(!caption&&!f&&!$("mgTags").value.trim()){$("mgPostResult").textContent="Add a photo, caption or hashtags first.";return}
+  const caption=$("mgCaption").value.trim();
+  if(!caption&&!mgPhotoData&&!mgTags()){$("mgPostResult").textContent="Add a photo, caption or hashtags first.";return}
   $("mgPostResult").textContent="Sending…";
   try{
-    const image=f?await mgImage(f):null;
-    await mgPush({kind:"post",account:mgAcct,image,caption,tags:$("mgTags").value,mood:$("mgMood").value,audience:$("mgAudience").value});
-    $("mgPostResult").textContent="✅ Queued — posting as "+mgAcct+".";
-    $("mgCaption").value="";$("mgTags").value="";$("mgPhoto").value="";
+    await mgPush({kind:"post",account:mgAcct,image:mgPhotoData,caption,tags:$("mgTags").value,mood:$("mgMood").value,audience:mgAud});
+    $("mgPostResult").textContent="";mgToast("✅ Queued — posting as "+mgAcct);
+    $("mgCaption").value="";$("mgTags").value="";$("mgPhoto").value="";mgPhotoData=null;$("mgPhotoLbl").textContent="📷 Add a photo";mgPreview();
   }catch(e){$("mgPostResult").textContent=e.message}
 };
-document.querySelectorAll("[data-mg-act]").forEach(b=>b.onclick=async()=>{
-  const act=b.dataset.mgAct,postId=$("mgPostSel").value||"latest",cid=$("mgCommentSel").value,text=$("mgText").value.trim();
-  if((act==="comment"||act==="reply")&&!text){$("mgActResult").textContent="Write some text first.";return}
-  if((act==="reply"||act==="pin")&&!cid){$("mgActResult").textContent="Pick a comment first.";return}
-  const cmd={kind:act,postId};
-  if(act==="react")cmd.reaction=$("mgReaction").value;
-  if(act==="comment"||act==="reply")cmd.text=text;
-  if(act==="reply")cmd.parentId=cid;
-  if(act==="pin")cmd.commentId=cid;
-  try{await mgPush(cmd);$("mgActResult").textContent="✅ Queued: "+act;if(cmd.text)$("mgText").value=""}catch(e){$("mgActResult").textContent=e.message}
-});
 document.querySelectorAll("[data-mg-event]").forEach(b=>b.onclick=async()=>{
-  try{await mgPush({kind:"event",event:b.dataset.mgEvent});$("mgEvResult").textContent="✅ Triggered: "+b.textContent}catch(e){$("mgEvResult").textContent=e.message}
+  b.classList.add("fired");setTimeout(()=>b.classList.remove("fired"),700);
+  try{await mgPush({kind:"event",event:b.dataset.mgEvent});mgToast("🎬 Triggered: "+b.querySelector("b").textContent)}catch(e){$("mgEvResult").textContent=e.message}
 });
+$("mgFeed").onclick=async e=>{
+  const t=e.target.closest("button");if(!t)return;
+  try{
+    if(t.dataset.like){await mgPush({kind:"like",postId:t.dataset.like});const p=mgPost(t.dataset.like);if(p)p.mine="love";mgToast("❤️ Sent")}
+    else if(t.dataset.react){await mgPush({kind:"react",postId:t.dataset.id,reaction:t.dataset.react});const p=mgPost(t.dataset.id);if(p)p.mine=t.dataset.react;mgToast(MG_R[t.dataset.react]+" Sent")}
+    else if(t.dataset.reply){mgReply={p:t.dataset.id,c:t.dataset.reply,u:t.dataset.u}}
+    else if(t.dataset.pin){await mgPush({kind:"pin",postId:t.dataset.id,commentId:t.dataset.pin});const p=mgPost(t.dataset.id);p?.comments.forEach(c=>c.pinned=c.id===t.dataset.pin);mgToast("📌 Pinned")}
+    else return;
+    mgFeed();
+  }catch(x){mgToast(x.message)}
+};
+$("mgFeed").onsubmit=async e=>{
+  e.preventDefault();const f=e.target,text=f.querySelector("input").value.trim();if(!text)return;
+  const id=f.dataset.id,r=mgReply&&mgReply.p===id?mgReply:null;
+  try{
+    await mgPush(r?{kind:"reply",postId:id,parentId:r.c,text}:{kind:"comment",postId:id,text});
+    const p=mgPost(id);p?.comments.push({id:"tmp"+Date.now(),userId:"mikael",text,parentId:r?r.c:null});
+    mgReply=null;mgToast("💬 Sent — lands in ~10s");mgFeed();
+  }catch(x){mgToast(x.message)}
+};
+$("mgRefresh").onclick=()=>{mgSnap=null;mgLoad()};
+document.querySelector('[data-view="mizzygram"]').addEventListener("click",()=>{$("viewTitle").textContent="📸 MizzyGram";mgLoad()});
+setInterval(()=>{if(!$("mizzygram").classList.contains("hidden")&&!document.hidden)mgLoad()},15000);
 })();
