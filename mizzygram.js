@@ -1,11 +1,16 @@
 (()=>{"use strict";
 
 /* =====================================================================
-   MizzyGram — Phase 7 (Mikael HQ bridge)
+   MizzyGram — Phase 8 (in-app profile editing)
    Everything is stored in this browser (IndexedDB) for now.
-   To change a user's username / bio / picture / personality, edit
-   CONFIG below. To act as Mikael instead of Lizzy, use the "Switch to
-   Mikael" button on the Profile tab (own profile).
+   Name / bio / profile picture can now be changed in-app from the
+   Profile tab ("✏️ Edit Profile", own profile only) — saved to
+   Store's "profile-overrides" meta key and merged onto CONFIG.users
+   at boot. Username and personality still require editing CONFIG
+   below. Lizzy can no longer switch into Mikael's account from the
+   Profile tab — that direction of the switcher is disabled in both
+   the UI (button hidden) and switchUser() itself. Mikael switching
+   to Lizzy's account is unaffected.
    ===================================================================== */
 
 /* ---------- tiny generators for the fictional accounts' art ----------
@@ -79,7 +84,7 @@ const CONFIG={
       comments:["Logged. Cuteness levels rising.","System says: 😍","Running diagnostics… conclusion: iconic.","Saving this to permanent memory."]
     },
     bowlingfederation:{
-      id:"bowlingfederation",username:"bowlingfederation",name:"Bowling Federation",bot:true,favReaction:"bowling",
+      id:"bowlingfederation",verified:true,username:"bowlingfederation",name:"Bowling Federation",bot:true,favReaction:"bowling",
       avatar:tileAvatar("🎳","#ffb84c","#e8317f"),
       bio:"Official-ish authority on all things bowling.\nStrikes only. Gutter balls will be mocked.",
       tile:["🎳","#ffb84c","#e8317f"],
@@ -91,7 +96,7 @@ const CONFIG={
       comments:["This deserves a 300 score. Perfect game.","STRIKE. That's a strike right there.","The Federation has reviewed this post. Verdict: excellent.","10/10, would high-five."]
     },
     chocolateemergency:{
-      id:"chocolateemergency",username:"chocolateemergency",name:"Chocolate Emergency",bot:true,favReaction:"chocolate",
+      id:"chocolateemergency",verified:true,username:"chocolateemergency",name:"Chocolate Emergency",bot:true,favReaction:"chocolate",
       avatar:tileAvatar("🍫","#8a5a2c","#3a220f"),
       bio:"First responders for chocolate-related crises.\nAvailable 24/7. Bring snacks.",
       tile:["🍫","#8a5a2c","#3a220f"],
@@ -103,8 +108,8 @@ const CONFIG={
       comments:["This is now a Level 1 Chocolate Emergency. Sending backup.","Deploying rescue chocolate to this post immediately.","We've never seen anything this sweet. Dispatching a team to investigate.","Confirmed: chocolate-worthy content."]
     },
     bankofmicky:{
-      id:"bankofmicky",username:"bankofmicky",name:"Bank of Micky",bot:true,favReaction:"fire",
-      avatar:tileAvatar("💰","#2f8f5b","#123322"),
+      id:"bankofmicky",verified:true,username:"bankofmicky",name:"Bank of Micky",bot:true,favReaction:"fire",
+      avatar:"assets/mizzygram/bankofmicky.png",
       bio:"Handling deposits to the Token Jar since forever.\nInterest rates: unreasonably high for good behaviour.",
       tile:["💰","#2f8f5b","#123322"],
       posts:[
@@ -114,9 +119,9 @@ const CONFIG={
       ],
       comments:["Logging this as a Token Jar deposit. Approved.","This post just increased your account balance significantly.","The Bank of Micky has reviewed this and issued a bonus.","Certified: this is rich (in a good way)."]
     },
-    mickysdailynews:{
-      id:"mickysdailynews",username:"mickysdailynews",name:"Micky's Daily News",bot:true,favReaction:"suspicious",
-      avatar:tileAvatar("📰","#c9c9d6","#4a4a5a"),
+    thedailygobshite:{
+      id:"thedailygobshite",verified:true,username:"thedailygobshite",name:"TheDailyGobshite",bot:true,favReaction:"suspicious",
+      avatar:"assets/mizzygram/thedailygobshite.png",
       bio:"Covering the Lizzy & Mikael beat, 24 hours a day.\nUnverified sources. Fully biased. Front page always.",
       tile:["📰","#c9c9d6","#4a4a5a"],
       posts:[
@@ -127,8 +132,8 @@ const CONFIG={
       comments:["This is going on the front page. No debate.","Sources confirm: adorable. Printing tomorrow's headline now.","Breaking news just dropped and it's this post.","Exclusive coverage incoming. This is huge."]
     },
     thepresident:{
-      id:"thepresident",username:"thepresident",name:"The President",bot:true,favReaction:"fire",
-      avatar:tileAvatar("🏛️","#2a4a9a","#0b1633"),
+      id:"thepresident",verified:true,username:"thepresident",name:"The President",bot:true,favReaction:"fire",
+      avatar:"assets/mizzygram/thepresident.png",
       bio:"Head of state. Head of the household.\nSpeaking on behalf of the people (two of them).",
       tile:["🏛️","#2a4a9a","#0b1633"],
       posts:[
@@ -137,7 +142,693 @@ const CONFIG={
         "🎖️ PRESIDENTIAL PARDON: Granted to whoever ate the last chocolate. This time only."
       ],
       comments:["The President has reviewed this post and approves it.","This has been entered into the national record.","A motion to declare this post a national treasure has passed.","The administration is proud of you both."]
-    }
+    },
+
+    /* ---- The Office cast — post at random, never all on the same day (see seedOfficeIfNeeded / startOfficePosts) ---- */
+    michael:{
+      id:"michael",username:"michael",name:"Michael Scott",bot:true,favReaction:"funny",
+      avatar:tileAvatar("🏆","#f2b705","#c2410c"),
+      bio:"Regional Manager, Dunder Mifflin Scranton. World's Best Boss (self-appointed).\nHere to make everyone my best friend.",
+      tile:["🏆","#f2b705","#c2410c"],
+      posts:[
+        "Just closed a huge deal. Or thought about closing one. Basically the same thing. #WorldsBestBoss",
+        "Had an amazing idea for the office today. HR said no. Typical.",
+        "Remember: I'm not their boss, I'm their friend first. Boss second. Probably entertainer third.",
+        "Ordered pretzels for the whole office. This is what leadership looks like.",
+        "Sometimes I start a sentence and I don't even know where it's going. I just hope I find it along the way.",
+        "Gave an inspiring speech today. No one clapped. Their loss.",
+        "Declared today a surprise half-day. Corporate is going to be SO mad. Worth it.",
+        "That's what she said. (Had to.)"
+      ],
+      comments:["This is the best thing I've ever seen and I've seen a lot of things.","I'm not crying, you're crying.","Can we frame this? I want to frame this.","This deserves a round of applause. *starts clapping alone*","This is why I love this office. This exact thing right here."]
+    },
+    jim:{
+      id:"jim",username:"jim",name:"Jim Halpert",bot:true,favReaction:"funny",
+      avatar:tileAvatar("😏","#38bdf8","#1e3a5f"),
+      bio:"Sales, Dunder Mifflin Scranton.\nProfessional prankster. Camera guy's best friend.",
+      tile:["😏","#38bdf8","#1e3a5f"],
+      posts:[
+        "Put Dwight's stapler in jello again. He deserved it. He always deserves it.",
+        "Someone left their phone unlocked near me today. Let's just say their contacts look... different now.",
+        "Faxed myself a message from the future. It said 'stop.' I did not stop.",
+        "Pretty sure Dwight thinks I'm part of a secret counter-espionage unit. Not correcting him.",
+        "Had a great day. Didn't do a lot of work. Balance.",
+        "Moved every item on Dwight's desk two inches to the left. He hasn't noticed yet. It's been three days.",
+        "Sometimes I just look directly at the camera. You know why."
+      ],
+      comments:["This is objectively hilarious and I will not be taking questions.","Ten out of ten, would prank again.","Screenshotting this for later.","I have never related to anything more.","This is why I love this app."]
+    },
+    pam:{
+      id:"pam",username:"pam",name:"Pam Beesly",bot:true,favReaction:"cute",
+      avatar:tileAvatar("🎨","#f7b6d2","#a3355c"),
+      bio:"Receptionist & artist, Dunder Mifflin Scranton.\nSketching my way through the day.",
+      tile:["🎨","#f7b6d2","#a3355c"],
+      posts:[
+        "Sketched something during lunch today. Small victories.",
+        "Front desk was quiet enough today to actually finish a drawing. Miracle.",
+        "Someone brought donuts to the office and for once it wasn't a bribe. I think.",
+        "Working on a new piece. Might actually finish this one.",
+        "Best part of today: five uninterrupted minutes with my sketchbook.",
+        "Pitched an office art show idea. We'll see if it goes anywhere. It won't. But I pitched it.",
+        "Some days the front desk feels like the best seat in the house for people-watching."
+      ],
+      comments:["This made my whole day, honestly.","So talented, not even surprised.","Okay this is really sweet.","I love this so much.","This deserves way more attention."]
+    },
+    dwight:{
+      id:"dwight",username:"dwight",name:"Dwight Schrute",bot:true,favReaction:"fire",
+      avatar:tileAvatar("🌾","#6b8e23","#2f3d17"),
+      bio:"Assistant to the Regional Manager* (*self-declared). Schrute Farms beet co-owner.\nAlways prepared. Always alert.",
+      tile:["🌾","#6b8e23","#2f3d17"],
+      posts:[
+        "Reminder: I am equally skilled in combat and accounting. Plan accordingly.",
+        "Harvested a record beet crop this weekend. Do not ask me how. It is a farming secret.",
+        "Identity theft is not a joke. Millions of families suffer every year.",
+        "Conducted a surprise fire drill today. Evacuation time: unacceptable. Training continues.",
+        "Schrute Farms bed and breakfast now offers a haunted corn maze experience. Screaming included, free of charge.",
+        "I do not have a bunkmate. I have a battle buddy.",
+        "Today I identified three security vulnerabilities in this building. I will not be disclosing them. For security reasons.",
+        "Beets. Bears. Battlestar Galactica. In that order."
+      ],
+      comments:["This post has been noted in my personal files.","Impressive. Not as impressive as a beet harvest, but impressive.","I award this post zero demerits.","False. But entertaining.","I have seen many things. This ranks in my top twenty."]
+    },
+    oscar:{
+      id:"oscar",username:"oscar",name:"Oscar Martinez",bot:true,favReaction:"suspicious",
+      avatar:tileAvatar("🧮","#64748b","#1e293b"),
+      bio:"Senior Accountant, Dunder Mifflin Scranton.\nSomeone has to fact-check this office.",
+      tile:["🧮","#64748b","#1e293b"],
+      posts:[
+        "Actually, that statistic everyone's repeating today is incorrect. I checked.",
+        "Reviewed the quarterly numbers. They are, shockingly, numbers.",
+        "Explained a basic financial concept to the office again. It did not go well.",
+        "Corrected someone's grammar in a memo today. You're welcome, everyone.",
+        "The break room coffee situation has become a genuine liability. Someone should address this.",
+        "I would just like to point out that I was right about this three weeks ago.",
+        "Spent my lunch actually reading the terms and conditions. No regrets."
+      ],
+      comments:["Technically accurate, I'll allow it.","This is correct, and I appreciate that.","I have several notes but overall, fine.","Well, that's one way to phrase it.","I fact-checked this. It checks out."]
+    },
+    angela:{
+      id:"angela",username:"angela",name:"Angela Martin",bot:true,favReaction:"attitude",
+      avatar:tileAvatar("🐱","#b98cce","#4a235a"),
+      bio:"Head of Accounting, Dunder Mifflin Scranton. Senior Committee member.\nCats > people, most days.",
+      tile:["🐱","#b98cce","#4a235a"],
+      posts:[
+        "Sprinkles did something adorable this morning and I will not be elaborating further.",
+        "The break room has once again failed to meet basic standards of cleanliness. Noted for the file.",
+        "Party Planning Committee has ruled: no more surprise celebrations without proper notice.",
+        "Some of us take punctuality seriously. Some of us should learn from that.",
+        "Added another photo to the cat wall. It's not excessive. It's organized appreciation.",
+        "I do not gossip. I simply retain accurate information about others.",
+        "A moment of judgment-free silence for anyone who brought a scented candle into this office. Just kidding. Judging."
+      ],
+      comments:["This is acceptable, I suppose.","Noted. Filed accordingly.","I have mixed feelings, mostly positive.","This meets my standards, which is rare.","Fine. This is fine."]
+    },
+    stanley:{
+      id:"stanley",username:"stanley",name:"Stanley Hudson",bot:true,
+      avatar:tileAvatar("🥨","#a97142","#4a2e1a"),
+      bio:"Sales, Dunder Mifflin Scranton.\nHere for the paycheck. Here for pretzel day. Here for very little else.",
+      tile:["🥨","#a97142","#4a2e1a"],
+      posts:[
+        "Did the crossword during a meeting today. Finished it before the meeting ended. Not a coincidence.",
+        "It's not pretzel day. Every day without pretzel day is a day I'm counting down.",
+        "Someone asked for my opinion in a meeting today. I did not have one prepared. Or interest.",
+        "Four hours until I can go home. Not that I'm counting. I am counting.",
+        "Did not raise my voice today. Did not lower it either. Remained exactly the same.",
+        "My vacation home requires my full attention starting Friday at 5:01pm sharp.",
+        "Someone tried to get me excited about a new initiative today. Bold strategy."
+      ],
+      comments:["Fine.","Didn't hate it.","Sure.","I'd rate this a solid, acceptable post.","Not bad. Not that I was invested."]
+    },
+    toby:{
+      id:"toby",username:"toby",name:"Toby Flenderson",bot:true,
+      avatar:tileAvatar("😔","#93a5b1","#37474f"),
+      bio:"Human Resources, Dunder Mifflin Scranton.\nJust trying to keep things fair around here.",
+      tile:["😔","#93a5b1","#37474f"],
+      posts:[
+        "Had to file another incident report today. No one reads these. I still write them carefully.",
+        "Reminder: HR complaints can be submitted anonymously. Please use this option. Please use it kindly.",
+        "Sometimes I wonder what my life would look like somewhere else. Costa Rica, maybe.",
+        "Organized the sensitivity training materials again. Attendance was, as always, reluctant.",
+        "No one said good morning to me today. I counted. It's fine. I'm fine.",
+        "Filed the paperwork correctly this time. Small wins.",
+        "I just think if people talked to each other more, half these complaints wouldn't happen. But what do I know."
+      ],
+      comments:["This is nice. Genuinely nice.","I don't say this a lot, but I liked this.","This actually made me smile a little today.","Good for you. Really.","I don't get a lot of nice moments here, so — thanks for this one."]
+    },
+    kelly:{
+      id:"kelly",username:"kelly",name:"Kelly Kapoor",bot:true,favReaction:"cute",
+      avatar:tileAvatar("💅","#ff69b4","#c2185b"),
+      bio:"Customer Service Rep, Dunder Mifflin Scranton.\nOpinions on everything, feelings about everyone.",
+      tile:["💅","#ff69b4","#c2185b"],
+      posts:[
+        "Okay so a LOT happened today and I need to tell literally everyone about it right now.",
+        "Someone didn't text me back in nine minutes and I have several theories.",
+        "New shoes, new mood, new me (for today, we'll see about tomorrow).",
+        "I watched three reality shows during lunch and I have STRONG opinions about all of them.",
+        "Started a group chat about something and it immediately spiraled and honestly? Iconic.",
+        "Nobody asked but I'm going to explain my whole day anyway.",
+        "Told the whole office about my weekend in full detail whether they wanted it or not."
+      ],
+      comments:["OMG obsessed with this, no notes.","Wait this is actually SO good.","I need everyone to see this immediately.","I have so many feelings about this post.","This is my new favorite thing, don't ask me why."]
+    },
+    kevin:{
+      id:"kevin",username:"kevin",name:"Kevin Malone",bot:true,favReaction:"chocolate",
+      avatar:tileAvatar("🌶️","#e25822","#7a1f00"),
+      bio:"Accounting, Dunder Mifflin Scranton.\nChili enthusiast. Drummer. Smarter than people think.",
+      tile:["🌶️","#e25822","#7a1f00"],
+      posts:[
+        "Made a big batch of chili this weekend. It's a whole process. Worth it.",
+        "Had a thought today that turned out to be right. Wrote it down so I'd remember it happened.",
+        "Practiced drums for two hours straight. My neighbors have not filed a complaint. Yet.",
+        "Simplified a spreadsheet today by combining a bunch of cells into one. Oscar didn't love that.",
+        "Thinking about chili again. It's been four hours.",
+        "Found money in my other pants. Best kind of day.",
+        "Explained a complicated accounting thing perfectly on the first try. No one believed me."
+      ],
+      comments:["Ha. That's a good one.","I like this a lot, in a simple way.","This made me hungry for some reason.","Solid post. Very solid.","Yeah. I liked that."]
+    },
+    creed:{
+      id:"creed",username:"creed",name:"Creed Bratton",bot:true,favReaction:"suspicious",
+      avatar:tileAvatar("🎭","#5c5470","#1a1625"),
+      bio:"??? Quality Assurance, probably. Dunder Mifflin Scranton.\nMultiple names. Zero explanations.\nwww.creedthoughts.gov.www/creedthoughts",
+      tile:["🎭","#5c5470","#1a1625"],
+      posts:[
+        "Slept in the warehouse again. Best decision I've made all decade. Or the worst. Hard to say from in here.",
+        "New post up on creedthoughts.gov.www/creedthoughts. Do not read it out loud in a public place.",
+        "I've had this ID for eleven years and none of the names on it are mine. Working as intended.",
+        "Someone asked me my age today. I gave them a number. It felt right in the moment.",
+        "Found a tooth in my desk drawer. Not concerned. Filed it under 'personal effects.'",
+        "I don't dream anymore. I just wait.",
+        "Cashed a check today that I don't remember writing. Banks are so trusting. It's honestly beautiful.",
+        "New theory dropping soon on the website. It involves the moon. It involves me. It involves both of us, together.",
+        "If anyone's looking for me between 2 and 4pm, I'm not real during those hours. Try later."
+      ],
+      comments:["This speaks to me on a level I choose not to examine.","I have seen things that make this look normal. This still ranks high.","Posting this to the website. Don't ask which section.","I don't know what this means but I believe it.","This is the realest thing I've seen all week, and I've seen some things."]
+    },
+
+    /* ---- Gilmore Girls / Stars Hollow cast — post at random, never all on the same day (see seedGilmoreIfNeeded / startGilmorePosts) ---- */
+    lorelai:{
+      id:"lorelai",username:"lorelai",name:"Lorelai Gilmore",bot:true,favReaction:"funny",
+      avatar:tileAvatar("☕","#d97b3f","#7a3b12"),
+      bio:"Innkeeper, Stars Hollow. Coffee is a love language.\nRaising Rory one Pop-Tart at a time.",
+      tile:["☕","#d97b3f","#7a3b12"],
+      posts:[
+        "Coffee IV drip when? Asking for science.",
+        "Told Michel to smile at a guest today. He looked personally offended by the request.",
+        "Rory and I watched three movies and ate a family-sized bag of Twizzlers. Balanced dinner, really.",
+        "Had a whole conversation with my mother that lasted four minutes and somehow ruined my entire week.",
+        "Pop-Tarts count as a food group. I don't make the rules. Okay, I made this specific rule.",
+        "Booked a full house at the inn today. Michel complained the exact right amount.",
+        "Talked so fast at the diner today Luke made me repeat the whole order. Worth it for the eye roll."
+      ],
+      comments:["Okay this is adorable, add it to the pile of things I'm obsessed with.","I would trade a week of coffee for this, and that's saying a lot.","This deserves its own Friday night dinner discussion. The good kind.","Rory, back me up, this is amazing.","Be right there, just let me finish my coffee first."]
+    },
+    rory:{
+      id:"rory",username:"rory",name:"Rory Gilmore",bot:true,favReaction:"love",
+      avatar:tileAvatar("📚","#7ec4cf","#1d4e57"),
+      bio:"Stars Hollow High. Aspiring journalist.\nCurrently three books behind on my own list.",
+      tile:["📚","#7ec4cf","#1d4e57"],
+      posts:[
+        "Finished another book today. Adding it to the list. The list is very long.",
+        "Working on an article for the school paper. Trying to make deadlines sound dramatic. They are dramatic.",
+        "Mom and I had another movie night. I regret nothing, including the sugar crash.",
+        "Spent the afternoon at the library. Yes, on purpose. Yes, I had fun.",
+        "Trying to figure out my future one book at a time. Mostly it's working.",
+        "Coffee run with Mom turned into a two-hour conversation about literally everything."
+      ],
+      comments:["This is exactly the kind of thing I'd write about.","Okay, adding this to my mental list of great things.","This deserves a footnote in somebody's memoir.","I love this, no further commentary needed. Okay, some commentary.","Reading this twice, just to be sure."]
+    },
+    luke:{
+      id:"luke",username:"luke",name:"Luke Danes",bot:true,
+      avatar:tileAvatar("🪵","#3e4a3d","#141a13"),
+      bio:"Luke's Diner. Coffee, in moderation (mine, not yours).\nFlannel isn't a trend, it's a lifestyle.",
+      tile:["🪵","#3e4a3d","#141a13"],
+      posts:[
+        "Told someone their fourth coffee refill was their last for the day. They did not listen. I gave them a fifth anyway.",
+        "Fixed the diner sign again. It keeps falling. I keep fixing it. This is apparently my life now.",
+        "Closed early today. Needed the quiet. Didn't get it. Someone knocked anyway.",
+        "Someone asked for a decaf today. I do not carry decaf. On principle.",
+        "Renovated a booth. No one noticed. I noticed. That's enough.",
+        "Turns out flannel is 'in' again, according to someone. I've been in this the whole time."
+      ],
+      comments:["Fine. It's good. Don't let it go to your head.","Didn't say anything, just refilled your coffee. That's the compliment.","Alright, this one's actually pretty good.","Not gonna lie, I smiled a little at this.","Noted. Moving on."]
+    },
+    emily:{
+      id:"emily",username:"emily",name:"Emily Gilmore",bot:true,favReaction:"attitude",
+      avatar:tileAvatar("💎","#b5b8c1","#2c2f36"),
+      bio:"Hartford. Friday night dinner starts promptly at seven.\nStandards are not optional.",
+      tile:["💎","#b5b8c1","#2c2f36"],
+      posts:[
+        "Hosted another dinner party. The centerpiece alone took three hours to approve.",
+        "Fired the maid again. Will rehire her by Thursday. This is a system, not a scandal.",
+        "Friday night dinner starts promptly at seven. Promptly. I do mean promptly.",
+        "Attended a benefit luncheon today. The company was tolerable. The dessert was not.",
+        "Richard rearranged his study again. I've allowed it. This time.",
+        "Someone at the club questioned my seating chart. I did not dignify it with a response."
+      ],
+      comments:["Well. I suppose this is acceptable.","This is lovely, dear, truly.","I'll allow this, this once.","This would look marvelous framed in the sitting room.","Well done. I mean that sincerely, for once."]
+    },
+    richard:{
+      id:"richard",username:"richard",name:"Richard Gilmore",bot:true,
+      avatar:tileAvatar("🥃","#5c4433","#2a1d14"),
+      bio:"Insurance, Hartford. Scotch, always.\nStories about the war available upon request.",
+      tile:["🥃","#5c4433","#2a1d14"],
+      posts:[
+        "Spent the evening with a good scotch and a bad business report. Balanced out nicely.",
+        "Told a story about the war at dinner tonight. Got through the whole thing before anyone interrupted. A record.",
+        "Reorganized my study again. Found three books I forgot I owned. Excellent evening.",
+        "Attended a very long meeting today. Said very little. Said it well.",
+        "Emily rearranged the good china. I have accepted my fate.",
+        "Debated business strategy over cigars tonight. Won, obviously."
+      ],
+      comments:["Quite right. Well done.","A fine effort, all things considered.","This deserves recognition. Formally, if possible.","I'm impressed, and I don't say that often.","Good show."]
+    },
+    sookie:{
+      id:"sookie",username:"sookie",name:"Sookie St. James",bot:true,favReaction:"chocolate",
+      avatar:tileAvatar("🍳","#ffcf4d","#b5450c"),
+      bio:"Head chef, the Inn. Occasional kitchen injuries.\nEverything's better with butter.",
+      tile:["🍳","#ffcf4d","#b5450c"],
+      posts:[
+        "Burned dinner tonight. Twice. Still ate it. Still delicious. I have no explanation.",
+        "Tried a new recipe today. Kitchen looked like a crime scene. Worth it.",
+        "Cut my finger again. Third time this week. Kept cooking anyway.",
+        "Made a soufflé that didn't collapse! I may actually cry about this.",
+        "Jackson brought vegetables again. I turned them into something amazing. Obviously.",
+        "Spent four hours on a menu that will be eaten in four minutes. Worth every second."
+      ],
+      comments:["Okay this made me SO happy, I might cry.","I love this more than I love a perfect soufflé, and that's saying something.","This deserves its own tasting menu.","I'm obsessed, genuinely obsessed.","This is the best thing I've seen all week, no contest."]
+    },
+    michel:{
+      id:"michel",username:"michel",name:"Michel Gerard",bot:true,favReaction:"suspicious",
+      avatar:tileAvatar("🛎️","#4a4a5a","#101018"),
+      bio:"Concierge, the Inn. I did not choose hospitality, hospitality chose me.\nI am unavailable to discuss it further.",
+      tile:["🛎️","#4a4a5a","#101018"],
+      posts:[
+        "A guest asked me for directions today. I gave them. Correctly. I am still recovering from the ordeal.",
+        "Someone tried to check in early. I explained, calmly, why that is not possible. I was very calm.",
+        "I answered the phone eleven times today. Eleven. I counted. I always count.",
+        "Lorelai asked me to smile more. I smiled once. She said it looked threatening. I am aware.",
+        "A guest complained about the pillows. The pillows are fine. The guest is the problem.",
+        "I organized the front desk perfectly today. No one appreciated it. As usual."
+      ],
+      comments:["I suppose this is tolerable.","Fine. It is fine. I said what I said.","This is acceptable, barely.","I did not want to like this. I like this.","I will allow this one time."]
+    },
+    paris:{
+      id:"paris",username:"paris",name:"Paris Geller",bot:true,favReaction:"fire",
+      avatar:tileAvatar("🎯","#b91c1c","#450a0a"),
+      bio:"Chilton. Future somebody important.\nEleven extracurriculars and counting.",
+      tile:["🎯","#b91c1c","#450a0a"],
+      posts:[
+        "Reorganized my study schedule for the third time today. This one is final. Probably.",
+        "Got a 98 on the exam. Unacceptable. Where were the other two points.",
+        "Debated someone in class today. Won. Obviously. Did anyone expect otherwise.",
+        "Made a five-year plan. Then a ten-year plan. Then panicked about both.",
+        "Someone questioned my extracurricular list. I have eleven activities. Eleven is not enough.",
+        "Pulled an all-nighter for a paper due in two weeks. Efficiency is a myth I've chosen to ignore."
+      ],
+      comments:["This is acceptable work. High praise, coming from me.","I have notes, but overall — fine.","This better be on your college application.","I'm annoyed I didn't think of this first.","Fine. FINE. This is good."]
+    },
+    lane:{
+      id:"lane",username:"lane",name:"Lane Kim",bot:true,favReaction:"fire",
+      avatar:tileAvatar("🥁","#d946ef","#581c87"),
+      bio:"Stars Hollow. Drummer, in secret.\nCD collection hidden, ambitions not.",
+      tile:["🥁","#d946ef","#581c87"],
+      posts:[
+        "Hid three new CDs in the ceiling tile today. The collection grows. Mama must never know.",
+        "Practiced drums in the garage for two hours. My arms are dead. Worth it.",
+        "Told Mama I was at a study group. I was at a show. I regret nothing. I fear everything.",
+        "Started a new band today. We have a name. We do not have a drummer. Wait, I'm the drummer.",
+        "Snuck a rock magazine into a Bible cover again. Smooth as always.",
+        "Had the best conversation with Rory today about absolutely nothing and everything."
+      ],
+      comments:["Okay this is so good, hiding this in my secret binder of great things.","I'm playing this on repeat in my head now.","This deserves its own mixtape.","Love this, don't tell Mama I said that.","This is officially my favorite thing today."]
+    },
+    jess:{
+      id:"jess",username:"jess",name:"Jess Mariano",bot:true,
+      avatar:tileAvatar("🖤","#3f3f46","#09090b"),
+      bio:"Stars Hollow, allegedly. Reader.\nSarcasm is a love language too.",
+      tile:["🖤","#3f3f46","#09090b"],
+      posts:[
+        "Read a book today that everyone said I wouldn't like. I liked it. Didn't tell anyone.",
+        "Fixed something at the diner without being asked. Uncle Luke looked suspicious. Fair.",
+        "Skipped a class today. Learned more from the book I read instead. Don't tell anyone that either.",
+        "Someone asked what I was thinking about. I said nothing. That was a lie.",
+        "Wrote something today. Threw it away. Might've kept a copy. Might not have.",
+        "Had one decent conversation today. Ruined it immediately with a comment. Typical."
+      ],
+      comments:["Didn't expect to like this. I like this.","This is better than most things I've read this week.","Not bad.","Okay, that's actually kind of great.","Wasn't going to comment. Here I am, commenting."]
+    },
+    kirk:{
+      id:"kirk",username:"kirk",name:"Kirk Gleason",bot:true,favReaction:"funny",
+      avatar:tileAvatar("🎬","#34d399","#065f46"),
+      bio:"Stars Hollow. Currently between fourteen jobs.\nNew business venture launching any minute now.",
+      tile:["🎬","#34d399","#065f46"],
+      posts:[
+        "Started a new business today. It failed by lunch. Starting another one tomorrow.",
+        "Tried a new invention today. It did not work as intended. Filing a patent anyway.",
+        "Took on my fourteenth job this month. Still figuring out which one pays.",
+        "Made a short film starring myself. Premiere is Thursday. Refreshments will be provided by me.",
+        "Walked my pig today. He walked me, actually. It's a partnership.",
+        "Applied for a job I am extremely unqualified for. Confidence is 90% of the process."
+      ],
+      comments:["This is exactly the kind of quality content this town needs.","I have several follow-up questions, all supportive.","Adding this to my scrapbook of favorite moments.","This deserves a spot in the town festival.","I don't fully understand it, but I fully support it."]
+    },
+
+    /* ---- Brooklyn Nine-Nine cast — post at random, never all on the same day (see seedB99IfNeeded / startB99Posts) ---- */
+    jake:{
+      id:"jake",username:"jake",name:"Jake Peralta",bot:true,favReaction:"funny",
+      avatar:tileAvatar("🚨","#2563eb","#0b1a3a"),
+      bio:"Detective, 99th Precinct.\nTitle of your sex tape. Nine-Nine!",
+      tile:["🚨","#2563eb","#0b1a3a"],
+      posts:[
+        "Solved a case today using only a Die Hard reference and pure instinct. New record.",
+        "Cool cool cool cool cool, no doubt no doubt no doubt, just checking in on this post.",
+        "Made a bet with Amy again. Lost again. Worth it every time.",
+        "Wore my bulletproof vest to a birthday party today. You can never be too prepared. Or normal.",
+        "Captain Holt gave me a look today. I don't know what it meant. I never know what it means.",
+        "Solved the case, saved the day, still lost the parking spot to Terry. Rude.",
+        "Pretty sure I just quoted Die Hard four times in one meeting. Personal best."
+      ],
+      comments:["Noice.","This is the best thing that's happened to me all day, and I once caught a guy whose only disguise was a fake mustache.","Title of your sex tape.","Cool cool cool, love this, no doubt.","This deserves a Die Hard-level celebration."]
+    },
+    amy:{
+      id:"amy",username:"amy",name:"Amy Santiago",bot:true,favReaction:"love",
+      avatar:tileAvatar("🗂️","#ec4899","#4a044e"),
+      bio:"Detective, 99th Precinct.\nBinders, color-coded pens, and a five-year plan.",
+      tile:["🗂️","#ec4899","#4a044e"],
+      posts:[
+        "Reorganized my case files by color, then by date, then by color again. Perfection achieved.",
+        "Got a 'good job' nod from Captain Holt today. Framing it. Mentally. Possibly literally.",
+        "Made a pro/con list for lunch today. Lunch won. Barely.",
+        "Filed my paperwork three days early again. No, I will not be taking questions about why.",
+        "Jake bet me I couldn't finish this report in an hour. Finished it in forty minutes. Never doubt me.",
+        "Started a new binder today. It has a title page. It has tabs. It has my whole heart."
+      ],
+      comments:["This is so well organized, I'm genuinely impressed.","Adding this to my planner immediately.","This deserves a gold star. I'm making one right now.","Ten out of ten, very thorough, very good.","I have a binder just for posts like this now."]
+    },
+    rosa:{
+      id:"rosa",username:"rosa",name:"Rosa Diaz",bot:true,favReaction:"attitude",
+      avatar:tileAvatar("🏍️","#7f1d1d","#1a1a1a"),
+      bio:"Detective, 99th Precinct.\nDon't ask about my personal life. Or my motorcycle. Okay, the motorcycle's fine.",
+      tile:["🏍️","#7f1d1d","#1a1a1a"],
+      posts:[
+        "Someone asked how I was doing today. I said 'fine.' They believed me. Good.",
+        "Rode my motorcycle to work today. Rode it home too. That's the whole update.",
+        "Intimidated a suspect into confessing in under two minutes. New record. Didn't even raise my voice.",
+        "Someone tried to make small talk in the elevator. I let the silence speak for itself.",
+        "Wore leather to a wedding. It was appropriate. I decided it was appropriate.",
+        "Punched a wall today. The wall started it. Metaphorically."
+      ],
+      comments:["Fine. This is good.","Didn't say I liked it. I liked it.","Not bad.","This is acceptable.","Noted."]
+    },
+    terry:{
+      id:"terry",username:"terry",name:"Terry Jeffords",bot:true,favReaction:"cute",
+      avatar:tileAvatar("🥛","#16a34a","#052e16"),
+      bio:"Sergeant, 99th Precinct.\nTerry loves yogurt. Terry loves his girls more.",
+      tile:["🥛","#16a34a","#052e16"],
+      posts:[
+        "Terry ate an entire tub of yogurt today. Terry regrets nothing. Terry needs more yogurt.",
+        "Did 400 push-ups before lunch. Terry's arms are enormous and also very tired.",
+        "Showed everyone a new photo of the girls today. Nobody left the break room for twenty minutes. Worth it.",
+        "Terry organized the equipment room today. Terry loves organization almost as much as protein.",
+        "Broke up a fight today using only Terry's voice. Didn't even have to move.",
+        "Terry cried a little during a commercial today. Terry is not sorry."
+      ],
+      comments:["Terry loves this post.","This made Terry's whole day.","Terry approves, and Terry does not approve lightly.","Terry has opinions and this is a good one.","Terry is very proud of this."]
+    },
+    holt:{
+      id:"holt",username:"holt",name:"Captain Raymond Holt",bot:true,
+      avatar:tileAvatar("🐈","#1e3a5f","#0f172a"),
+      bio:"Captain, 99th Precinct.\nCheddar's father. Efficiency enthusiast.\nI do not smile. This is a smile.",
+      tile:["🐈","#1e3a5f","#0f172a"],
+      posts:[
+        "Cheddar refused to eat his dinner today. We stared at each other for eleven minutes. I do not know who won.",
+        "Delivered a briefing today with zero unnecessary words. It was, I believe, a personal best.",
+        "Someone attempted a joke in the briefing room today. I did not laugh. Internally, I was delighted.",
+        "Reorganized the precinct's filing system. Efficiency increased by 12 percent. I am content.",
+        "Kevin made dinner tonight. It was exquisite. I have already requested it again for Thursday.",
+        "A detective referred to me as 'terrifying' today. I consider this accurate and satisfactory."
+      ],
+      comments:["This is acceptable work.","I am, in my own way, delighted by this.","Well done. This is not said lightly.","I have reviewed this. It meets my standards.","A rare and genuine commendation: good work."]
+    },
+    boyle:{
+      id:"boyle",username:"boyle",name:"Charles Boyle",bot:true,favReaction:"love",
+      avatar:tileAvatar("🍲","#92400e","#451a03"),
+      bio:"Detective, 99th Precinct.\nAmateur chef. Professional Jake Peralta enthusiast.",
+      tile:["🍲","#92400e","#451a03"],
+      posts:[
+        "Made a seven-course meal for one person today. That person was me. No regrets.",
+        "Told Jake I'd take a bullet for him today. He said thanks, I think he meant it.",
+        "Tried a new recipe involving an ingredient I can't pronounce. It was incredible. I cried a little.",
+        "Organized a surprise party today. It went sideways almost immediately. Still count it as a win.",
+        "Someone said my food smelled weird today. Their loss, honestly. Their tremendous loss.",
+        "Had an emotional breakthrough during lunch. Also had a great sandwich. Big day overall."
+      ],
+      comments:["This made me emotional, in a good way!","I would fight someone over how good this is.","This deserves its own seven-course celebration.","Genuinely one of the best things I've seen today.","I'm tearing up a little, not gonna lie."]
+    },
+    gina:{
+      id:"gina",username:"gina",name:"Gina Linetti",bot:true,favReaction:"fire",
+      avatar:tileAvatar("💃","#f472b6","#6b21a8"),
+      bio:"Civilian Administrator, 99th Precinct.\nHuman form of the 100 emoji. You're welcome.",
+      tile:["💃","#f472b6","#6b21a8"],
+      posts:[
+        "Did absolutely nothing productive today and somehow still ran this entire precinct. Iconic.",
+        "Taught myself a new dance today. Debuted it in the break room. No applause was necessary. I heard it anyway.",
+        "Ignored several emails today. They're still there. I'm still fabulous. Balance.",
+        "Someone asked me to do actual work today. I considered it. Then I didn't.",
+        "Posted a selfie today. It broke the internet. My internet. In my head.",
+        "Gave someone advice today. It was extremely good advice. They didn't take it. Their loss."
+      ],
+      comments:["This is iconic and I don't say that lightly, I say it constantly but I mean it.","Obsessed. Big mood. All of it.","This deserves way more attention, immediately.","I would put this on a billboard.","This is giving main character energy and I respect it."]
+    },
+    hitchcock:{
+      id:"hitchcock",username:"hitchcock",name:"Hitchcock",bot:true,favReaction:"chocolate",
+      avatar:tileAvatar("🍩","#57534e","#1c1917"),
+      bio:"Detective, 99th Precinct.\nTechnically still employed. Technically.",
+      tile:["🍩","#57534e","#1c1917"],
+      posts:[
+        "Ate lunch at my desk today. And breakfast. Might've been the same meal.",
+        "Solved a cold case today by accident. Went right back to napping after.",
+        "Someone asked when I last left the building. I could not answer with confidence.",
+        "Scully and I split a large pizza today. Between the two of us. Just the two of us.",
+        "Did not do much today. Did not plan to. Zero regrets."
+      ],
+      comments:["Yeah, this is good, I liked it.","Didn't move much today but I moved my thumb for this.","Solid. Real solid.","I'd get up and clap but I won't.","Good one."]
+    },
+    scully:{
+      id:"scully",username:"scully",name:"Scully",bot:true,favReaction:"cute",
+      avatar:tileAvatar("🥪","#a16207","#422006"),
+      bio:"Detective, 99th Precinct.\nFamily photos and snacks, mostly in that order.",
+      tile:["🥪","#a16207","#422006"],
+      posts:[
+        "Showed everyone photos of my grandkids today. Again. No regrets, they're perfect.",
+        "Had three lunches today. It was a big day for lunch.",
+        "Fainted a little at a crime scene today. Recovered with a sandwich.",
+        "Hitchcock and I solved absolutely nothing today, together, as a team.",
+        "Told a story about my ex-wife today. Twelve minutes long. No one asked. Everyone listened."
+      ],
+      comments:["This is sweet, really.","Reminds me of my grandkids, in a good way.","Nice. Very nice.","This made my whole day a little better.","I liked this. A lot, actually."]
+    },
+
+    /* ---- High School Musical / East High cast — post at random, never all on the same day (see seedHSMIfNeeded / startHSMPosts) ---- */
+    troy:{
+      id:"troy",username:"troy",name:"Troy Bolton",bot:true,favReaction:"fire",
+      avatar:tileAvatar("🏀","#ea580c","#7c2d12"),
+      bio:"East High Wildcats, #14.\nBasketball. Singing. Occasionally both at once.",
+      tile:["🏀","#ea580c","#7c2d12"],
+      posts:[
+        "Nailed free throws all practice today. Coach (aka Dad) still found something to critique. Love that for me.",
+        "Got called to the principal's office today for singing in the hallway. Worth it.",
+        "Team huddle got weirdly emotional today. Wildcats > everything.",
+        "Practiced a callback and free throws in the same afternoon. We contain multitudes.",
+        "Someone said I can't be both an athlete and a singer. I said watch me.",
+        "Dad benched me for showing up late. Fair. Still think about it every day.",
+        "Locker room pep talk got out of hand today. Somehow ended in a full harmony. Standard Tuesday."
+      ],
+      comments:["Wildcats forever, this is everything.","Okay MVP behavior, love to see it.","This deserves a callback of its own.","Get it, Wildcat.","This is exactly why you're team captain."]
+    },
+    gabriella:{
+      id:"gabriella",username:"gabriella",name:"Gabriella Montez",bot:true,favReaction:"love",
+      avatar:tileAvatar("🔬","#0284c7","#0c2d48"),
+      bio:"East High, new girl.\nScholastic Decathlon captain. Secretly loves the spotlight too.",
+      tile:["🔬","#0284c7","#0c2d48"],
+      posts:[
+        "Scholastic Decathlon practice ran late again. Worth it, we're basically unstoppable now.",
+        "Someone told me I don't 'seem like the type' to sing. I've stopped explaining myself to people like that.",
+        "New school, new locker, same old habit of reading three books at once.",
+        "Practiced a duet today. My voice cracked once. We're not discussing it further.",
+        "Chemistry test today. Also emotionally, apparently. It's been a week.",
+        "Moving around growing up meant I learned to make friends fast. Still nervous every single time.",
+        "Studying and singing in the same afternoon. Balance is a skill. I'm working on it."
+      ],
+      comments:["This is so sweet, honestly.","You're so talented, in every possible category.","This deserves an A+ and a standing ovation.","I love this so much, no notes.","Okay this is really lovely."]
+    },
+    sharpay:{
+      id:"sharpay",username:"sharpay",name:"Sharpay Evans",bot:true,favReaction:"attitude",
+      avatar:tileAvatar("👑","#f43f5e","#831843"),
+      bio:"East High Drama Club, star of every show (obviously).\nPink is a state of mind.",
+      tile:["👑","#f43f5e","#831843"],
+      posts:[
+        "Rehearsed my solo in the mirror for two hours today. It was flawless. As expected.",
+        "Someone auditioned for MY role today. Bold. Wrong, but bold.",
+        "Wore three outfit changes to school today. It's called main character energy, look it up.",
+        "The spotlight and I have a very special relationship. It knows where to find me.",
+        "Ryan and I choreographed a new number. It's iconic. I already know it's iconic.",
+        "Demanded a callback and got one. Some call it entitled. I call it accurate casting.",
+        "Pink is a state of mind, not just a color. I live there."
+      ],
+      comments:["This is star quality, obviously.","I would cast this immediately.","Iconic. Simply iconic.","This deserves the spotlight, and I don't say that about just anything.","Fabulous. Full stop."]
+    },
+    ryan:{
+      id:"ryan",username:"ryan",name:"Ryan Evans",bot:true,favReaction:"cute",
+      avatar:tileAvatar("🎩","#eab308","#78350f"),
+      bio:"East High Drama Club, choreographer.\nHats. Jazz hands. The occasional solo.",
+      tile:["🎩","#eab308","#78350f"],
+      posts:[
+        "Choreographed a new number today. It has jazz hands. It has a hat trick. It has everything.",
+        "Sharpay and I disagreed about the number again. We compromised. Mostly she won.",
+        "Found the perfect hat for the number today. This changes everything.",
+        "Practiced tap for three hours. My feet are tired. My spirit is thriving.",
+        "Someone complimented my scarf today. Finally, someone gets it.",
+        "Working on a solo that isn't just backup to Sharpay's solo. Wish me luck. Send hats.",
+        "Choreography meeting ran long today. Worth it, we found the perfect eight-count."
+      ],
+      comments:["This has real star potential, I mean that.","Love the energy on this, truly.","This deserves its own spotlight moment.","Okay, this is really good, genuinely.","I would workshop this into a whole number."]
+    },
+    chad:{
+      id:"chad",username:"chad",name:"Chad Danforth",bot:true,favReaction:"funny",
+      avatar:tileAvatar("🎧","#dc2626","#450a0a"),
+      bio:"East High Wildcats.\nBasketball first. Musical theater, reluctantly, second.",
+      tile:["🎧","#dc2626","#450a0a"],
+      posts:[
+        "Told Troy for the hundredth time: basketball and singing can coexist. I've come around. Slowly.",
+        "Practiced free throws until the gym closed. Some habits die hard. This one won't die at all.",
+        "Got roped into the musical again. Still complaining. Still showing up.",
+        "Taylor explained something to me using a chart today. I understood none of it. Loved every second.",
+        "Team scrimmage today got competitive fast. As it should.",
+        "Wore my jersey to the audition. Statement piece. Also just laundry day.",
+        "Someone questioned my hip-hop knowledge today. Foolish decision on their part."
+      ],
+      comments:["Let's go, this is the move.","Okay this actually kind of slaps, not mad about it.","Solid, real solid.","This deserves a fist bump, at minimum.","I see it. I respect it."]
+    },
+    taylor:{
+      id:"taylor",username:"taylor",name:"Taylor McKessie",bot:true,favReaction:"suspicious",
+      avatar:tileAvatar("📊","#0d9488","#134e4a"),
+      bio:"East High Scholastic Decathlon captain.\nCharts for everything. Skeptical of jocks, mostly.",
+      tile:["📊","#0d9488","#134e4a"],
+      posts:[
+        "Organized the whole Decathlon schedule today. It's color-coded. It's flawless. It's a system.",
+        "Explained to Chad, again, why questioning the status quo matters. Slow but steady progress.",
+        "Studied for six hours straight today. Worth every minute. Ask me anything about mitochondria.",
+        "Started a new club today. It has a mission statement. It has bylaws. It has ambition.",
+        "Someone underestimated the Decathlon team today. Big mistake. We remember everything.",
+        "Made a chart to explain my feelings today. It helped. Charts always help.",
+        "Gabriella and I studied for hours and somehow still had energy to overthink everything else too."
+      ],
+      comments:["This is thoroughly impressive, well done.","I have a chart that would explain exactly why I love this.","This deserves an award, genuinely.","Smart and well executed, as always.","This checks every box. Impressive."]
+    },
+    kelsi:{
+      id:"kelsi",username:"kelsi",name:"Kelsi Nielsen",bot:true,favReaction:"love",
+      avatar:tileAvatar("🎹","#8b5cf6","#312e81"),
+      bio:"East High Drama Club, composer & pianist.\nWrote your favorite number. Still learning to say so.",
+      tile:["🎹","#8b5cf6","#312e81"],
+      posts:[
+        "Finished a new song today. No one's heard it yet. Terrified. Also proud.",
+        "Sat at the piano for four hours straight. Lost track of time completely. No regrets.",
+        "Someone actually asked to hear one of my songs today instead of just using it. Big day.",
+        "Wrote a whole arrangement in one sitting. My hands are tired. My heart is full.",
+        "Quietly watched rehearsal from the piano today. Best seat in the house, honestly.",
+        "Changed one note in the bridge and somehow the whole song feels different now. Music is wild.",
+        "Someone finally learned my last name today. Small victories."
+      ],
+      comments:["This melody is stuck in my head, in the best way.","This deserves way more credit, truly.","So talented, quietly incredible.","This is beautiful, I mean that.","I would listen to this on repeat."]
+    },
+    zeke:{
+      id:"zeke",username:"zeke",name:"Zeke Baylor",bot:true,favReaction:"chocolate",
+      avatar:tileAvatar("🧁","#f59e0b","#78350f"),
+      bio:"East High Wildcats, power forward.\nSecretly the best baker in school. Not so secretly anymore.",
+      tile:["🧁","#f59e0b","#78350f"],
+      posts:[
+        "Baked a batch of crème brûlée before practice today. Priorities, but also dessert.",
+        "Brought cupcakes to practice today. Coach pretended not to notice. Coach had three.",
+        "Tried a new soufflé recipe today. It rose. I nearly cried in the kitchen.",
+        "Someone was surprised I bake. I was surprised they were surprised. We contain multitudes, people.",
+        "Made cookies for the whole team today. Still waiting for a certain someone to notice. Someday.",
+        "Practiced dunks and pastry technique in the same day. Balance.",
+        "New dessert idea in the works. Highly classified. Will reveal at the next bake sale."
+      ],
+      comments:["Okay these desserts look incredible, no notes.","I would try literally anything you baked, all of it.","This deserves its own bake sale.","So good, genuinely impressed every time.","This is elite level baking, respectfully."]
+    },
+
+    /* ---- Movie recommendation pages: one genre account posts each day ---- */
+    horrorreels:{
+      id:"horrorreels",username:"horrorreels",name:"Midnight Reels",bot:true,public:true,favReaction:"suspicious",
+      avatar:tileAvatar("🩸","#201020","#050505"),bio:"Horror picks after dark. New scares + classics worth losing sleep over.",tile:["🩸","#201020","#050505"],
+      posts:["Tonight's horror pick: Get Out. Smart, tense, funny in exactly the wrong moments — go in as blind as possible. 🎬","Recommendation: Hereditary. Family drama first, nightmare fuel second. Headphones off. Lights on. 😶","Scream is still one of the sharpest horror comfort watches ever made. Meta, funny and properly tense. 🔪","If you missed Talk to Me, fix that. Short runtime, nasty concept, zero wasted time. 👋","Classic corner: Alien. Space, silence and one very bad work trip. 👽","The Babadook is for anyone who likes horror that leaves emotional damage with the jump scares."],
+      timedPosts:[
+        {until:"2026-10-09T23:59:59+02:00",text:"Upcoming horror watch: Other Mommy opens 9 October 2026. Putting this on the spooky-season list now. 👀"},
+        {until:"2026-10-23T23:59:59+02:00",text:"October horror radar: Clayface opens 23 October 2026. Body-horror season is looking busy. 🫠"},
+        {until:"2026-11-13T23:59:59+02:00",text:"Upcoming: Victorian Psycho opens 13 November 2026. Period drama energy, but make it deeply unsettling. 🕯️"},
+        {until:"2026-12-25T23:59:59+02:00",text:"Christmas horror counter-programming: Werwulf is set for 25 December 2026. Very festive. Very normal. 🐺"}
+      ],comments:["Adding this to the list.","Okay this one actually got me.","Lights staying ON.","That ending though 👀"]
+    },
+    comedyclub:{
+      id:"comedyclub",username:"comedyclub",name:"The Laugh Track",bot:true,public:true,favReaction:"funny",
+      avatar:tileAvatar("😂","#ffd34e","#e85d04"),bio:"Comedies for bad days, good days and group chats that need a movie.",tile:["😂","#ffd34e","#e85d04"],
+      posts:["Comedy pick: Game Night. A mystery, chaos, and people making catastrophically confident decisions. Perfect. 😂","Bridesmaids remains a top-tier comfort comedy. No serious film analysis today, just laughs.","The Nice Guys: detective movie + buddy comedy + absolute disaster energy. Highly recommended.","Booksmart is fast, warm and genuinely funny. Great one for a friend-movie night.","Superbad is still a time capsule of terrible teenage decision-making. That is the recommendation.","Mean Girls. You know the quotes. You know the scenes. You know what to do."],
+      timedPosts:[
+        {until:"2026-10-02T23:59:59+02:00",text:"Coming up: Digger opens 2 October 2026. Adding a fresh comedy to the watchlist. 🎟️"},
+        {until:"2026-11-06T23:59:59+02:00",text:"Upcoming comedy: The Cat in the Hat opens 6 November 2026. Chaos incoming. 🎩"},
+        {until:"2026-12-11T23:59:59+02:00",text:"December watchlist: The Debut opens 11 December 2026. New comedy for the end-of-year queue. 🍿"}
+      ],comments:["That one is hilarious.","Rewatch immediately.","Perfect group-watch pick.","No notes 😂"]
+    },
+    romanceframe:{
+      id:"romanceframe",username:"romanceframe",name:"Love Letter Cinema",bot:true,public:true,favReaction:"love",
+      avatar:tileAvatar("💌","#ff7aa8","#8b2c5f"),bio:"Romance movies, yearning, beautiful lighting and unnecessary emotional damage.",tile:["💌","#ff7aa8","#8b2c5f"],
+      posts:["Romance pick: Before Sunrise. Two people, one night, a lot of talking, somehow perfect. 🌙","Past Lives for quiet yearning and the kind of ending you stare at the credits after.","Pride & Prejudice (2005). Hand flex. Rain. Fields. Cinema. That's the post.","Carol is gorgeous, restrained and made for a slow evening watch.","The Notebook is obvious, yes. Sometimes obvious is exactly what you need.","About Time: romance, family, time travel, and a sneaky amount of crying."],
+      timedPosts:[
+        {until:"2026-10-16T23:59:59+02:00",text:"Upcoming romance: Sense and Sensibility opens 16 October 2026. Austen season is officially booked. 💐"},
+        {until:"2026-10-23T23:59:59+02:00",text:"Romance watchlist update: Wicker opens 23 October 2026 — a comedy/romance/sci-fi mix. Intrigued. 🧺"},
+        {until:"2026-11-27T23:59:59+02:00",text:"Upcoming: In Waves opens 27 November 2026. Adding it to the romance queue. 🌊"}
+      ],comments:["The yearning!","This one hurts beautifully.","Adding to date-night list.","Cinema for soft people 💗"]
+    },
+    dramadaily:{
+      id:"dramadaily",username:"dramadaily",name:"After Credits Drama",bot:true,public:true,favReaction:"fire",
+      avatar:tileAvatar("🎭","#394867","#14213d"),bio:"Big performances, complicated people, and movies you keep thinking about tomorrow.",tile:["🎭","#394867","#14213d"],
+      posts:["Drama recommendation: Whiplash. Stressful in the most watchable way possible. 🥁","Moonlight. Beautiful, intimate, devastating. Give it your full attention.","The Social Network is still one of the most rewatchable dialogue-heavy dramas around.","Manchester by the Sea if today's plan is apparently emotional destruction.","Parasite is funny, tense, sharp and constantly changing shape. Essential watch.","The Shawshank Redemption: a classic for a reason. Save a long evening for it."],
+      timedPosts:[
+        {until:"2026-10-02T23:59:59+02:00",text:"Drama radar: Verity opens 2 October 2026. One for the twisty, darker end of the watchlist. 📚"},
+        {until:"2026-10-09T23:59:59+02:00",text:"Upcoming drama: The Social Reckoning opens 9 October 2026. Added to the October queue. 🎬"},
+        {until:"2026-11-06T23:59:59+02:00",text:"Coming 6 November 2026: Wild Horse Nine. November drama slot secured. 🎟️"}
+      ],comments:["Still thinking about this one.","That performance was unreal.","Worth the full attention.","Credits rolled and I just sat there."]
+    },
+    meetcutemovies:{
+      id:"meetcutemovies",username:"meetcutemovies",name:"Meet Cute Movies",bot:true,public:true,favReaction:"cute",
+      avatar:tileAvatar("💕","#ff9ec4","#7c3aed"),bio:"Rom-coms, chemistry, airport runs and people finally communicating in act three.",tile:["💕","#ff9ec4","#7c3aed"],
+      posts:["Rom-com pick: 10 Things I Hate About You. Charm levels remain undefeated. 💕","When Harry Met Sally. The blueprint. That's it. That's the recommendation.","Crazy Rich Asians for glamour, chemistry and a wedding sequence that still works every time.","Palm Springs if you want a rom-com that starts weird and gets even better.","Notting Hill: bookstore, movie star, London, feelings. Easy recommendation.","Set It Up is a modern comfort-watch rom-com that knows exactly what it is."],
+      timedPosts:[
+        {until:"2026-10-23T23:59:59+02:00",text:"Upcoming rom-com-ish pick: Wicker opens 23 October 2026, mixing romance, comedy and sci-fi. Very curious. 💘"},
+        {until:"2026-11-20T23:59:59+02:00",text:"Holiday romance radar: LAX: Holiday in New York opens 20 November 2026. Seasonal meet-cute energy loading. ✈️🎄"}
+      ],comments:["Elite comfort watch.","The chemistry!!","Adding this immediately.","Meet-cute approved 💕"]
+    },
+
+    /* ---- Music + celebrity accounts ---- */
+    msaki:{id:"msaki",username:"msaki",name:"Msaki",bot:true,public:true,verified:true,favReaction:"love",avatar:tileAvatar("🌙","#6a4c93","#1d3557"),bio:"Artist. Songwriter. Storyteller.",tile:["🌙","#6a4c93","#1d3557"],posts:["A quiet day with old songs. 'Ubomi Abumanga' still carries its own weather. 🌙","Thinking about all the places 'Fetch Your Life' has travelled since we made it.","Studio days: tea, voice notes, half-finished melodies, one line that changes everything.","Some songs arrive loudly. Others sit beside you until you're ready to hear them.","Back in rehearsal. Live music always teaches the song something new."],timedPosts:[{until:"2026-11-07T23:59:59+02:00",text:"Roodepoort — 7 November. Sunset Music Series at Walter Sisulu Botanical Garden with Thando Zide. See you under the evening sky. 🌿"},{until:"2026-11-14T23:59:59+02:00",text:"13–14 November: Jesse Clegg and I bring Entropy live to the Lyric Theatre at Gold Reef City. Can't wait to share this room with you."}],comments:["Beautiful.","This one stays with you.","See you there ❤️","Music for the soul."]},
+    sjava:{id:"sjava",username:"sjava",name:"Sjava",bot:true,public:true,verified:true,favReaction:"fire",avatar:tileAvatar("🎙️","#8c5a2b","#2f1b12"),bio:"Umculi. Storyteller. South Africa.",tile:["🎙️","#8c5a2b","#2f1b12"],posts:["'uMama' will always have a special place in the set. Siyabonga for carrying it with me.","Rehearsal today. 'Amafu' still sounds different when the whole room sings it back.","From Isina Muva to Isibuko — ten years of stories, lessons and people who listened.","Ngiyabonga to everyone who has grown with the music. We keep going.","Some nights are for writing. Some nights are for listening back and letting the song tell you what is missing."],timedPosts:[{until:"2026-10-23T23:59:59+02:00",text:"23 October — the 10 Year Celebration Tour comes to the Big Top Arena at Carnival City. A decade of music in one room. Ngiyabonga. 🙏🏾"}],comments:["Ngiyabonga 🙏🏾","Siyabonga.","See you there.","Love always."]},
+    jabulilemajola:{id:"jabulilemajola",username:"jabulilemajola",name:"Jabulile Majola",bot:true,public:true,verified:true,favReaction:"love",avatar:tileAvatar("🪕","#728c69","#25372d"),bio:"Afro-folk singer-songwriter. IPASI out now.",tile:["🪕","#728c69","#25372d"],posts:["IPASI is out now. Eleven songs about home, faith, memory and becoming. Thank you for meeting me here. 🌿","'Ubukho Bakhe' has been living in my head all morning. Some songs keep unfolding after release day.","Playing 'Baba Wethu' live reminds me why I started telling stories this way.","From Isitifiketi to IPASI — grateful for every person who has listened closely.","Acoustic guitar, a quiet room and 'Amagugu'. Sometimes that is enough."],comments:["Thank you for listening.","Ngiyabonga kakhulu.","See you at the show.","This means a lot."]},
+    jesseclegg:{id:"jesseclegg",username:"jesseclegg",name:"Jesse Clegg",bot:true,public:true,verified:true,favReaction:"fire",avatar:tileAvatar("🎸","#2f6690","#0b2545"),bio:"Singer-songwriter. Johannesburg / wherever the songs go.",tile:["🎸","#2f6690","#0b2545"],posts:["'Let It Burn' still feels good loud. Some songs are built for the drive home.","Back with the guitar today. Old songs, new ideas, same problem: too many voice notes.","'Speed of Light' kind of day. Turn it up.","The best part of making music is when a song stops belonging only to you.","Studio photo dump: cables, coffee, one good take, fourteen almost-good takes."],timedPosts:[{until:"2026-11-14T23:59:59+02:00",text:"Johannesburg: Msaki and I are bringing Entropy to the Lyric Theatre at Gold Reef City on 13 & 14 November. See you there. 🎸"}],comments:["Thanks for listening.","See you there!","Appreciate you.","More soon 🎸"]},
+    raye:{id:"raye",username:"raye",name:"RAYE",bot:true,public:true,verified:true,favReaction:"fire",avatar:tileAvatar("🎤","#8f2d56","#2b0f1c"),bio:"Singer, songwriter, professional over-sharer through music.",tile:["🎤","#8f2d56","#2b0f1c"],posts:["'Escapism.' changed my life in ways I am still processing. Thank you for every scream-sing in every room. 🖤","Putting 'Oscar Winning Tears.' on the set is basically choosing emotional violence, respectfully.","Studio at an unreasonable hour. This is apparently when the ideas arrive.","Vocal warm-up, tea, heels, chaos. Show day.","I love songs that sound glamorous while the subject matter is absolutely not."],comments:["Love youuuu.","Thank you darling 🖤","SEE YOU SOON.","You lot are too much 😭"]},
+    sunelmusician:{id:"sunelmusician",username:"sunelmusician",name:"Sun-El Musician",bot:true,public:true,verified:true,favReaction:"fire",avatar:tileAvatar("☀️","#f4a261","#264653"),bio:"Musician / producer. EL World Music.",tile:["☀️","#f4a261","#264653"],posts:["'Akanamali' in the headphones today. Grateful for how far that song travelled. ☀️","'Sonini' still belongs in golden-hour playlists. No debate.","Studio day. Synths first, phone later.","Thinking about the Red Bull Symphonic nights at Montecasino — hearing these records with a full orchestra was something else.","New session, blank project, no rules. My favourite place to start."],comments:["🙏🏾","Thank you for listening.","Much love.","We keep creating."]},
+    dave:{id:"dave",username:"santandave",name:"Dave",bot:true,public:true,verified:true,favReaction:"fire",avatar:tileAvatar("🎹","#3d405b","#111827"),bio:"Artist. South London.",tile:["🎹","#3d405b","#111827"],posts:["'Starlight' still goes off. Appreciate everyone who's kept that record moving.","'Location' in a live set and the crowd does half the job for you.","Piano for an hour. Phone on silent. Best reset.","'Black' is one of those songs I still approach differently every time I perform it.","Tour rehearsals. Small adjustments make a big difference."],timedPosts:[{until:"2026-10-03T23:59:59+02:00",text:"South Africa — Pretoria, 3 October. The Boy Who Played the Harp Tour at SunBet Arena, Time Square. See you soon. 🇿🇦"},{until:"2026-10-06T23:59:59+02:00",text:"Cape Town — 6 October. The Boy Who Played the Harp Tour at Grand Arena, GrandWest. 🇿🇦"}],comments:["Love.","See you there.","Appreciate it.","🙏🏾"]},
+    jcole:{id:"jcole",username:"realcoleworld",name:"J. Cole",bot:true,public:true,verified:true,favReaction:"fire",avatar:tileAvatar("🌍","#7f5539","#2d1e15"),bio:"Dreamville.",tile:["🌍","#7f5539","#2d1e15"],posts:["'Love Yourz' still says what it needs to say.","Some days it's 'No Role Modelz'. Some days it's silence and a notebook.","Studio. No caption really needed.","'MIDDLE CHILD' energy today.","Grateful for everybody that's been listening all these years. More work to do."],timedPosts:[{until:"2026-12-12T23:59:59+02:00",text:"Johannesburg — 12 December. The Fall-Off Tour at FNB Stadium. South Africa, see you soon. 🇿🇦"}],comments:["Much love.","Appreciate you.","See you there.","🙏🏾"]},
+    maleh:{id:"maleh",username:"maleh",name:"Maleh",bot:true,public:true,verified:true,favReaction:"love",avatar:tileAvatar("✨","#8a6d3b","#302718"),bio:"Singer. Songwriter. Lesotho / Southern Africa.",tile:["✨","#8a6d3b","#302718"],posts:["Music for slow mornings and long drives. Thank you for keeping these songs close.","Rehearsal room today. Voice, keys, patience.","Some songs need time before they tell you what they are.","A little behind the scenes: warm-ups, tea, laughter, then one more take.","Grateful for every room that has sung back to me."],comments:["Thank you ❤️","Love always.","See you soon.","Grateful."]},
+    yebba:{id:"yebba",username:"yebba",name:"Yebba",bot:true,public:true,verified:true,favReaction:"love",avatar:tileAvatar("🎙️","#7d8597","#202632"),bio:"Singer / songwriter.",tile:["🎙️","#7d8597","#202632"],posts:["'My Mind' will always ask a lot from me. Thank you for holding it gently.","'Distance' in the headphones. Still finding new corners in that song.","'October Sky' kind of morning.","One mic, one quiet room, no hiding. My favourite and least favourite thing.","Tour prep is mostly singing, stretching, losing things, finding them, singing again."],comments:["Thank you ❤️","Means a lot.","See you soon.","Love."]},
+    muzi:{id:"muzi",username:"muzi",name:"MUZI",bot:true,public:true,verified:true,favReaction:"fire",avatar:tileAvatar("⚡","#e76f51","#264653"),bio:"Zulu Skywalker. Artist / producer.",tile:["⚡","#e76f51","#264653"],posts:["'Zulu Skywalker' energy. Always.","'Interblaktic' back in the headphones today. 🚀","Studio looks like a spaceship again. Good sign.","South African sounds don't need permission to be futuristic.","Laptop, synth, field recordings, one idea at a time."],comments:["🚀","Sharp.","Love that.","Siyabonga."]},
+    onedirection:{id:"onedirection",username:"onedirection",name:"One Direction",bot:true,public:true,verified:true,favReaction:"love",avatar:tileAvatar("1D","#d62828","#1d3557"),bio:"Official archive. Five albums, a lot of memories.",tile:["🎧","#d62828","#1d3557"],posts:["From the archive: 'Night Changes'. Some songs simply refuse to age. ❤️","Throwback to the 'What Makes You Beautiful' era. That opening guitar still does the job.","'Story of My Life' appreciation post. That's all.","Archive pull: 'Drag Me Down'. Turn it up.","Five albums. Countless shows. Thank you for keeping the music alive.","'History' feels different every time the anniversary posts come around."],comments:["❤️","What a memory.","Thank you for being there.","Forever grateful."]},
+    micasa:{id:"micasa",username:"micasamusic",name:"Mi Casa",bot:true,public:true,verified:true,favReaction:"fire",avatar:tileAvatar("🏠","#00a896","#05668d"),bio:"Mi Casa es su casa. J'Something · Mo-T · Dr Duda.",tile:["🏠","#00a896","#05668d"],posts:["'Jika' in the set and suddenly everybody remembers every move. 🏠","'These Streets' still feels like home.","'Mamela' appreciation post. Turn it up.","Band rehearsal = three opinions, one groove, eventually magic.","More than a decade of music and the best part is still playing it together."],timedPosts:[{until:"2026-12-27T23:59:59+02:00",text:"Cape Town — 27 December at Cabo Beach Club with Liquideep, Oskido and DWSON. Summer is booked. 🌊"}],comments:["Mi Casa es su casa ❤️","See you there!","Let's go!","Love this."]},
+    liquideep:{id:"liquideep",username:"liquideep",name:"Liquideep",bot:true,public:true,verified:true,favReaction:"fire",avatar:tileAvatar("🌊","#277da1","#14213d"),bio:"Ziyon + Ryzor. Deep house from South Africa.",tile:["🌊","#277da1","#14213d"],posts:["'Fairytale' still finds its way into the room like it never left. 🌊","'Alone' — one of those records that carries memories with it.","'Something About You' kind of night.","Digging through old sessions and finding ideas that still have a pulse.","Deep house, warm nights, good people. That's the recipe."],timedPosts:[{until:"2026-12-27T23:59:59+02:00",text:"Cape Town — 27 December. Cabo Beach Club with Mi Casa, Oskido and DWSON. Classics, new music and a long summer night. 🌊"}],comments:["Much love.","See you there.","Classic!","🌊"]},
+    bonang:{id:"bonang",username:"bonang_m",name:"Bonang Matheba",bot:true,public:true,verified:true,favReaction:"fire",avatar:tileAvatar("👑","#f5b7d2","#7b2c5f"),bio:"Media personality. Entrepreneur. House of BNG. ✨",tile:["👑","#f5b7d2","#7b2c5f"],posts:["Soft glam, hard work. Happy Friday, my loves. ✨","Airport look: done. Passport: found. Mood: expensive. ✈️","A little House of BNG moment because celebrations deserve bubbles. 🥂","Glam chair chronicles. The before photo will never see daylight. 😂","Meetings all morning, fitting all afternoon, fabulous by dinner. Balance, baby.","South African sunshine and a very good outfit. Couldn't ask for more. 👑","Reminder: take the picture. Wear the dress. Book the trip. Celebrate yourself."],comments:["Love this for you! ✨","Beautiful!","My love ❤️","Fabulous, darling."]},
+    disney:{id:"disney",username:"disney",name:"Disney",bot:true,public:true,verified:true,favReaction:"cute",avatar:tileAvatar("🏰","#4b6cb7","#182848"),bio:"Movies, magic, Disney+ and a little nostalgia. ✨",tile:["🏰","#4b6cb7","#182848"],posts:["Nostalgia check: which Disney Channel theme song can you still sing from memory? 📺✨","Throwback to Kim Possible. Saving the world before homework remains an elite schedule.","The Lion King rewatch rule: yes, you still have to sing every song.","High School Musical nostalgia has entered the chat. What team? Wildcats. 🏀🎤","Lilo & Stitch reminder: found family stories always hit.","Phineas and Ferb really did wake up every day and choose productivity.","DuckTales theme song. That's it. That's the post. 🦆"],timedPosts:[{until:"2026-10-14T23:59:59+02:00",text:"Marvel Television's VisionQuest arrives on Disney+ on 14 October 2026. 🤖✨"},{until:"2026-10-16T23:59:59+02:00",text:"20th Century Studios' Whalefall comes to cinemas on 16 October 2026. 🌊"},{until:"2026-11-20T23:59:59+02:00",text:"Percy Jackson and the Olympians Season 3 streams on Disney+ from 20 November 2026. ⚡"},{until:"2026-11-25T23:59:59+02:00",text:"Walt Disney Animation Studios' Hexed arrives in cinemas on 25 November 2026. ✨"},{until:"2026-12-18T23:59:59+02:00",text:"Marvel Studios' Avengers: Doomsday arrives in cinemas on 18 December 2026. Assemble the group chat. 🅰️"}],comments:["✨","Adding to the watchlist!","Nostalgia unlocked.","See you there! 🏰"]}
   },
   reactions:[
     {id:"love",emoji:"❤️",label:"Love"},
@@ -151,6 +842,8 @@ const CONFIG={
   ],
   maxImage:1080,      // longest side of an uploaded photo, in px
   quality:.85,        // JPEG quality
+  maxVideoSeconds:30, // feed videos are limited to 30 seconds
+  maxVideoBytes:100*1024*1024, // 100 MB local-browser safety limit
   maxCaption:500,
   maxComment:300,
   eventGapMin:3,      // minimum minutes between random events
@@ -160,10 +853,61 @@ const CONFIG={
   storyBgs:["linear-gradient(135deg,#ff4d9a,#7a35dc)","linear-gradient(135deg,#ffb84c,#e8317f)","linear-gradient(135deg,#3a7bd5,#7a35dc)","linear-gradient(135deg,#2f8f5b,#123322)","linear-gradient(135deg,#8a5a2c,#3a220f)","linear-gradient(135deg,#3a3a55,#0e0410)"]
 };
 
+/* ---------- matching cartoon art for the TV-character fake accounts ---------- */
+const TV_CARTOON_COUNTS={"michael":9,"jim":9,"pam":9,"dwight":9,"oscar":9,"angela":9,"stanley":9,"toby":9,"kelly":9,"kevin":9,"creed":9,"lorelai":13,"rory":13,"luke":13,"emily":13,"richard":13,"sookie":13,"michel":13,"paris":13,"lane":13,"jess":13,"kirk":13,"jake":15,"amy":15,"rosa":15,"terry":15,"holt":15,"boyle":15,"gina":15,"hitchcock":15,"scully":15,"troy":14,"gabriella":14,"sharpay":14,"ryan":14,"chad":14,"taylor":14,"kelsi":14,"zeke":14};
+const ENTERTAINMENT_MEDIA_COUNTS={bonang:10,msaki:8,sjava:7,jabulilemajola:7,jesseclegg:8,raye:8,sunelmusician:7,dave:7,jcole:7,maleh:8,yebba:6,muzi:7,onedirection:6,micasa:8,liquideep:8};
+const TV_CARTOON_POST_CHANCE=.6;
+for(const [id,count] of Object.entries(TV_CARTOON_COUNTS)){
+  const u=CONFIG.users[id];if(!u)continue;
+  u.cartoonDir=`assets/mizzygram/characters/${id}`;
+  u.cartoonCount=count;
+  u.avatar=`${u.cartoonDir}/1.webp`;
+}
+for(const [id,count] of Object.entries(ENTERTAINMENT_MEDIA_COUNTS)){
+  const u=CONFIG.users[id];if(!u)continue;
+  u.mediaDir=`assets/mizzygram/entertainment/${id}`;
+  u.mediaCount=count;
+  u.avatar=`${u.mediaDir}/1.webp`;
+  u.feedMediaChance=id==="bonang"?.82:.64;
+  u.storyMediaChance=id==="bonang"?.94:.74;
+}
+function cartoonImageFor(u,chance=TV_CARTOON_POST_CHANCE){
+  if(!u||!u.cartoonCount||Math.random()>=chance)return null;
+  const n=1+Math.floor(Math.random()*u.cartoonCount);
+  return `${u.cartoonDir}/${n}.webp`;
+}
+function mediaImageFor(u,chance){
+  if(!u||!u.mediaCount)return null;
+  const odds=chance==null?(u.feedMediaChance??0):chance;
+  if(Math.random()>=odds)return null;
+  const n=1+Math.floor(Math.random()*u.mediaCount);
+  return `${u.mediaDir}/${n}.webp`;
+}
+function botImageFor(u,caption,chance=TV_CARTOON_POST_CHANCE){
+  return mediaImageFor(u)||cartoonImageFor(u,chance)||cardImage(caption,u.tile[0],u.tile[1],u.tile[2]);
+}
+
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+const verifiedMark=u=>u&&u.verified&&u.id!=="lizzy"&&u.id!=="mikael"?'<span class="verifiedBadge" title="Verified" aria-label="Verified">✓</span>':"";
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
 const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const socialHash=s=>{let h=2166136261;for(const ch of String(s)){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0};
+const CELEB_FOLLOWER_BASE={msaki:486000,sjava:2100000,jabulilemajola:146000,jesseclegg:218000,raye:3900000,sunelmusician:970000,dave:5300000,jcole:9800000,maleh:164000,yebba:1850000,muzi:420000,onedirection:28600000,micasa:610000,liquideep:285000,bonang:5600000,disney:38800000};
+const MOVIE_FOLLOWER_BASE={horrorreels:742000,comedyclub:619000,romanceframe:521000,dramadaily:438000,meetcutemovies:688000};
+function setupBotSocialStats(){
+  for(const [id,u] of Object.entries(CONFIG.users)){
+    if(!u.bot)continue;
+    if(CELEB_FOLLOWER_BASE[id])u.followerBase=CELEB_FOLLOWER_BASE[id];
+    else if(MOVIE_FOLLOWER_BASE[id])u.followerBase=MOVIE_FOLLOWER_BASE[id];
+    else if(TV_CARTOON_COUNTS[id])u.followerBase=180000+(socialHash(id)%2300000);
+    else if(u.public||u.verified)u.followerBase=55000+(socialHash(id)%760000);
+    else u.followerBase=8000+(socialHash(id)%82000);
+    u.followingBase=18+(socialHash(id+":following")%420);
+  }
+}
+setupBotSocialStats();
+const formatCount=n=>n>=1000000?(n/1000000).toFixed(n>=10000000?1:2).replace(/\.0+$/,"")+"M":n>=1000?(n/1000).toFixed(n>=100000?0:1).replace(/\.0$/,"")+"K":String(n);
 
 /* ---------- icons ---------- */
 const I={
@@ -247,19 +991,32 @@ const reactionOf=id=>CONFIG.reactions.find(r=>r.id===id);
 const otherHuman=id=>CONFIG.humans.find(h=>h!==id);
 
 /* ---------- follow graph: { userId: Set(userIds they follow) } ---------- */
+function enrichBotFollowGraph(g){
+  const botIds=Object.values(CONFIG.users).filter(u=>u.bot).map(u=>u.id);
+  for(const id of botIds){
+    g[id]=g[id]||new Set();
+    g[id].add("lizzy");g[id].add("mikael");
+    const wanted=6+(socialHash(id+":peers")%11);
+    for(let i=0;i<wanted;i++){
+      const target=botIds[socialHash(id+":"+i)%botIds.length];
+      if(target!==id)g[id].add(target);
+    }
+  }
+  return g;
+}
 function followGraphDefault(){
-  const g={lizzy:new Set(),mikael:new Set(["lizzy"])}; // Mikael already follows Lizzy by default 💗
-  Object.values(CONFIG.users).forEach(u=>{
-    if(!u.bot)return;
-    g[u.id]=new Set(["lizzy","mikael"]); // every fictional account already follows both of you
-  });
-  if(g.mickysdailynews)g.mickysdailynews=new Set(Object.keys(CONFIG.users).filter(id=>id!=="mickysdailynews")); // paparazzi — follows literally everyone
+  const g={lizzy:new Set(),mikael:new Set(["lizzy"])};
+  Object.values(CONFIG.users).forEach(u=>{if(u.bot)g[u.id]=new Set()});
+  enrichBotFollowGraph(g);
+  if(g.thedailygobshite)g.thedailygobshite=new Set(Object.keys(CONFIG.users).filter(id=>id!=="thedailygobshite"));
   return g;
 }
 let followGraph=followGraphDefault();
 const isFollowing=(a,b)=>!!(followGraph[a]&&followGraph[a].has(b));
 const followingOf=id=>[...(followGraph[id]||[])];
 const followersOf=id=>Object.keys(CONFIG.users).filter(u=>followGraph[u]&&followGraph[u].has(id));
+const followerCountFor=id=>(CONFIG.users[id]?.followerBase||0)+followersOf(id).length;
+const followingCountFor=id=>(CONFIG.users[id]?.followingBase||0)+followingOf(id).length;
 async function saveFollowGraph(){
   const plain={};for(const k in followGraph)plain[k]=[...followGraph[k]];
   try{await Store.setMeta("follow-graph",plain)}catch{}
@@ -274,6 +1031,7 @@ async function toggleFollow(targetId){
   render(true);renderSheet();
 }
 async function switchUser(id){
+  if(id==="mikael")return; // Lizzy can no longer switch into Mikael's account
   if(!CONFIG.users[id]||id===state.activeUser)return;
   state.activeUser=id;state.profileUser=null;state.replyTo=null;
   try{await Store.setMeta("active-user",id)}catch{}
@@ -322,6 +1080,40 @@ function prepareImage(file){
     img.src=url;
   });
 }
+
+function prepareVideo(file){
+  return new Promise((resolve,reject)=>{
+    if(!file||!/^video\//.test(file.type))return reject(new Error("Please choose a video file."));
+    if(file.size>CONFIG.maxVideoBytes)return reject(new Error("That video is too large. Keep it under 100 MB."));
+    const preview=URL.createObjectURL(file),v=document.createElement("video");
+    v.preload="metadata";v.muted=true;v.playsInline=true;
+    v.onloadedmetadata=()=>{
+      const duration=Number(v.duration);
+      if(!Number.isFinite(duration)||duration<=0){URL.revokeObjectURL(preview);return reject(new Error("Couldn't read that video's duration."))}
+      if(duration>CONFIG.maxVideoSeconds+.05){URL.revokeObjectURL(preview);return reject(new Error(`Videos can be up to ${CONFIG.maxVideoSeconds} seconds. This one is ${Math.ceil(duration)} seconds.`))}
+      resolve({video:file,preview,duration,videoType:file.type||"video/mp4"});
+    };
+    v.onerror=()=>{URL.revokeObjectURL(preview);reject(new Error("Couldn't read that video. Try MP4, MOV or WebM."))};
+    v.src=preview;
+  });
+}
+const videoObjectUrls=new Map();
+function videoSrc(p){
+  if(!p||!p.video)return "";
+  if(typeof p.video==="string")return p.video;
+  let url=videoObjectUrls.get(p.id);
+  if(!url){url=URL.createObjectURL(p.video);videoObjectUrls.set(p.id,url)}
+  return url;
+}
+function postMediaHTML(p,where="feed"){
+  if(p.mediaType==="video"&&p.video){
+    const src=esc(videoSrc(p));
+    if(where==="tile"||where==="cover")return `<video src="${src}" muted playsinline preload="metadata" aria-label="Video post"></video><span class="videoBadge" aria-hidden="true">▶</span>`;
+    return `<video src="${src}" controls playsinline preload="metadata" aria-label="Video post"></video>`;
+  }
+  return `<img src="${esc(p.image||"")}" alt="">`;
+}
+window.addEventListener("beforeunload",()=>{for(const u of videoObjectUrls.values())URL.revokeObjectURL(u)});
 
 /* ---------- reactions helpers ---------- */
 function reactionCounts(p){
@@ -373,14 +1165,13 @@ async function communityReact(postId,userId){
 async function seedCommunityIfNeeded(){
   const seeded=await Store.getMeta("npc-seed-v2",false);
   if(seeded)return;
-  const now=Date.now();let t=now-1000*60*60*24*6;
-  for(const u of Object.values(CONFIG.users)){
-    if(!u.posts)continue;
-    for(const caption of u.posts){
-      t+=1000*60*60*(5+Math.random()*19);
-      const image=u.bot?cardImage(caption,u.tile[0],u.tile[1],u.tile[2]):null;
-      if(!image)continue; // (human seed posts need a real photo, so they're skipped here)
-      const post={id:uid(),userId:u.id,image,caption,createdAt:Math.min(t,now-60000),reactions:{},comments:[],communityScheduled:true};
+  const now=Date.now(),users=Object.values(CONFIG.users).filter(u=>u.bot&&u.posts?.length);
+  for(const [i,u] of users.entries()){
+    const captions=shuffle([...u.posts]).slice(0,2);
+    for(const [j,caption] of captions.entries()){
+      const daysAgo=8+((i*7+j*16)%42)+Math.random()*3;
+      const image=botImageFor(u,caption);
+      const post={id:uid(),userId:u.id,image,caption,createdAt:now-daysAgo*864e5,reactions:{},comments:[],communityScheduled:true};
       state.posts.push(post);
       try{await Store.savePost(post)}catch{}
     }
@@ -464,7 +1255,7 @@ function searchPosts(q){return state.posts.filter(p=>(p.caption||"").toLowerCase
 function accountChip(u){
   const isMe=u.id===state.activeUser;
   return `<div class="chipCard">
-    <button class="chipUser" data-user="${u.id}"><span class="ava sm"><img src="${esc(u.avatar)}" alt=""></span><b>${esc(u.name)}</b><small>@${esc(u.username)}</small></button>
+    <button class="chipUser" data-user="${u.id}"><span class="ava sm"><img src="${esc(u.avatar)}" alt=""></span><b>${esc(u.name)}${verifiedMark(u)}</b><small>@${esc(u.username)}</small></button>
     ${isMe?"":`<button class="btn ${isFollowing(state.activeUser,u.id)?"ghost":"primary"} sm" data-follow="${u.id}">${isFollowing(state.activeUser,u.id)?"Following":"Follow"}</button>`}
   </div>`;
 }
@@ -657,6 +1448,20 @@ function deleteCollection(id){
   persistSaved();closeSheet(true);
   if(location.hash==="#saved")render(false);else location.hash="#saved";
 }
+async function submitEditProfile(){
+  const uidKey=state.activeUser,u=userOf(uidKey),err=$("epErr");
+  const name=$("epName").value.trim(),bio=$("epBio").value.trim();
+  if(!name){err.textContent="Name can't be empty.";return}
+  const avatar=(state.sheet&&state.sheet.avatar)||u.avatar;
+  const overrides=await Store.getMeta("profile-overrides",{});
+  overrides[uidKey]={name,bio,avatar};
+  try{await Store.setMeta("profile-overrides",overrides)}
+  catch{err.textContent="Couldn't save — your browser may be out of space.";return}
+  Object.assign(CONFIG.users[uidKey],{name,bio,avatar});
+  closeSheet(true);
+  toast("Profile updated ✏️");
+  render(true);
+}
 
 /* ----- sharing ----- */
 function sendShare(){
@@ -673,7 +1478,9 @@ function sendShare(){
 }
 async function shareToStory(){
   const p=state.posts.find(x=>x.id===state.sheet.id);if(!p)return;
-  if(await publishStory({kind:"photo",image:p.image,caption:"📌 @"+userOf(p.userId).username+(p.caption?": "+p.caption.slice(0,80):""),duration:6000}))closeSheet();
+  const mention="📌 @"+userOf(p.userId).username+(p.caption?": "+p.caption.slice(0,80):"");
+  const payload=p.mediaType==="video"?{kind:"text",text:"🎬 "+mention,bg:2,duration:6000}:{kind:"photo",image:p.image,caption:mention,duration:6000};
+  if(await publishStory(payload))closeSheet();
 }
 
 /* ----- stories: create / react / community ----- */
@@ -720,7 +1527,7 @@ function scheduleStoryCommunity(st){
 const migrateStory=x=>{if(!x.kind){x.kind="photo";x.evergreen=true;x.duration=5000}x.reactions=x.reactions||{};x.viewers=x.viewers||{};return x};
 async function seedBotStoriesIfNeeded(){
   if(await Store.getMeta("story-seed-v2",false))return;
-  [["chocolateemergency","🚨 Chocolate levels: CRITICAL. Snacks deployed.",4],["bowlingfederation","🎳 Strike Day is still in effect. No gutters. None.",1],["mickysdailynews","📰 BREAKING: you two are still the front page.",5]].forEach(([userId,text,bg],i)=>{
+  [["chocolateemergency","🚨 Chocolate levels: CRITICAL. Snacks deployed.",4],["bowlingfederation","🎳 Strike Day is still in effect. No gutters. None.",1],["thedailygobshite","📰 BREAKING: you two are still the front page.",5]].forEach(([userId,text,bg],i)=>{
     const st={id:uid(),userId,kind:"text",text,bg,duration:6000,evergreen:true,createdAt:Date.now()-i*36e5,reactions:{},viewers:{}};
     state.stories.push(st);Store.saveStory(st).catch(()=>{});
   });
@@ -748,9 +1555,13 @@ async function seedNewsIfNeeded(){
   ].forEach(([e,t,l,ago_])=>state.news.push({id:uid(),emoji:e,tag:t,headline:l,postId:null,createdAt:Date.now()-ago_*h}));
   persistNews();await Store.setMeta("news-seed-v1",true);
 }
-async function botPost(userId,caption,extra){
-  const u=CONFIG.users[userId],post={id:uid(),userId,image:cardImage(caption,u.tile[0],u.tile[1],u.tile[2]),caption,createdAt:Date.now(),reactions:{},comments:[],communityScheduled:true,...extra};
+async function botPost(userId,caption,extra={}){
+  const u=CONFIG.users[userId];if(!u)return null;
+  if(u.bot&&!extra.force&&typeof canScheduleFeedPost==="function"&&!canScheduleFeedPost(userId))return null;
+  const post={id:uid(),userId,image:botImageFor(u,caption),caption,createdAt:Date.now(),reactions:{},comments:[],communityScheduled:false,...extra};
+  delete post.force;
   state.posts.push(post);newestFirst();try{await Store.savePost(post)}catch{}
+  scheduleCommunityReactions(post);
   render(true);return post;
 }
 async function declassify(id){
@@ -819,7 +1630,7 @@ function memories(){
   CONFIG.memories.forEach(m=>{if(m.month===now.getMonth()+1&&m.day===now.getDate())out.push({label:m.year?(now.getFullYear()-m.year)+" years ago":"Today",text:m.text})});
   return out;
 }
-const memCard=m=>`<div class="memCard" ${m.post?`data-open="${m.post.id}"`:""}>${m.post?`<img src="${m.post.image}" alt="">`:""}<div><div class="memTag">💗 ON THIS DAY · ${m.label}</div><p>${esc(m.post?(m.post.caption||"A photo from "+userOf(m.post.userId).name):m.text)}</p></div></div>`;
+const memCard=m=>`<div class="memCard" ${m.post?`data-open="${m.post.id}"`:""}>${m.post?postMediaHTML(m.post,"cover"):""}<div><div class="memTag">💗 ON THIS DAY · ${m.label}</div><p>${esc(m.post?(m.post.caption||"A photo from "+userOf(m.post.userId).name):m.text)}</p></div></div>`;
 function homeExtras(){
   const top=state.news[0],mem=memories().slice(0,2);
   return `<a class="newsBanner" href="#news"><span>📰</span><div><b>MizzyGram News</b><small>${top?esc(top.headline):"Nothing breaking. Yet."}</small></div></a>${mem.map(memCard).join("")}`;
@@ -887,22 +1698,265 @@ async function seedPresidentIfNeeded(){
   newestFirst();
 }
 
+/* ---------- The Office cast: random, staggered posting ----------
+   Each character posts occasionally and independently, never all on
+   the same day. seedOfficeIfNeeded gives a handful of them a post
+   right away so the feed isn't empty; startOfficePosts keeps it going
+   forever after, checked every few minutes with low odds per check. */
+const FEED_MAX_POSTS_PER_30_DAYS=3;
+function latestPostAt(userId){const p=state.posts.find(x=>x.userId===userId);return p?p.createdAt:0}
+function latestStoryAt(userId){let newest=0;for(const st of state.stories){if(st.userId===userId&&st.createdAt>newest)newest=st.createdAt}return newest}
+function recentPostCount(userId,days=30,now=Date.now()){const cutoff=now-days*864e5;let n=0;for(const p of state.posts){if(p.userId===userId&&p.createdAt>=cutoff)n++}return n}
+function canScheduleFeedPost(userId,now=Date.now()){
+  const u=CONFIG.users[userId]||{};
+  if(recentPostCount(userId,30,now)>=FEED_MAX_POSTS_PER_30_DAYS)return false;
+  const last=latestPostAt(userId),gap=(u.minFeedGapHours||216)*36e5;
+  return !last||now-last>=gap;
+}
+function canScheduleStory(userId,now=Date.now()){
+  const u=CONFIG.users[userId]||{};
+  const last=latestStoryAt(userId),gap=(u.minStoryGapHours||60)*36e5;
+  return !last||now-last>=gap;
+}
+function storyCaptionText(txt,max=110){
+  return String(txt||"").replace(/\s+#\w+/g,"").replace(/\s+/g," ").trim().slice(0,max);
+}
+async function botStory(userId,caption,opts={}){
+  const u=CONFIG.users[userId];if(!u)return null;
+  const img=(opts.forceImage?mediaImageFor(u,1):mediaImageFor(u,u.storyMediaChance))||(u.cartoonCount&&Math.random()<.45?cartoonImageFor(u,1):null);
+  const common={id:uid(),userId,createdAt:Date.now(),reactions:{},viewers:{},duration:opts.duration||6500};
+  const st=img
+    ?{...common,kind:"photo",image:img,caption:storyCaptionText(caption||pick(u.posts||[""]))}
+    :{...common,kind:"text",text:storyCaptionText(caption||pick(u.posts||[""])),bg:opts.bg??Math.floor(Math.random()*CONFIG.storyBgs.length)};
+  state.stories.push(st);
+  try{await Store.saveStory(st)}catch{}
+  scheduleStoryCommunity(st);
+  return st;
+}
+
+const OFFICE_IDS=["michael","jim","pam","dwight","oscar","angela","stanley","toby","kelly","kevin","creed"];
+const officeBots=()=>OFFICE_IDS.map(id=>CONFIG.users[id]).filter(Boolean);
+async function seedOfficeIfNeeded(){
+  if(await Store.getMeta("npc-seed-office-v1",false))return;
+  try{await Store.setMeta("npc-seed-office-v1",true)}catch{}
+  const now=Date.now();
+  for(const u of officeBots()){
+    if(Math.random()<0.3)continue; // not everyone shows up on day one either
+    const caption=pick(u.posts),hoursAgo=2+Math.random()*90;
+    const post={id:uid(),userId:u.id,image:botImageFor(u,caption),caption,createdAt:now-hoursAgo*36e5,reactions:{},comments:[],communityScheduled:true};
+    state.posts.push(post);try{await Store.savePost(post)}catch{}
+  }
+  newestFirst();
+}
+function startOfficePosts(){
+  setInterval(()=>{
+    if(document.hidden)return;
+    for(const u of officeBots()){
+      if(!canScheduleFeedPost(u.id))continue;
+      if(Math.random()<0.0009)botPost(u.id,pick(u.posts));
+    }
+  },5*60000);
+}
+
+/* ---------- Gilmore Girls cast: random, staggered posting (same pattern as the Office cast) ---------- */
+const GILMORE_IDS=["lorelai","rory","luke","emily","richard","sookie","michel","paris","lane","jess","kirk"];
+const gilmoreBots=()=>GILMORE_IDS.map(id=>CONFIG.users[id]).filter(Boolean);
+async function seedGilmoreIfNeeded(){
+  if(await Store.getMeta("npc-seed-gilmore-v1",false))return;
+  try{await Store.setMeta("npc-seed-gilmore-v1",true)}catch{}
+  const now=Date.now();
+  for(const u of gilmoreBots()){
+    if(Math.random()<0.3)continue;
+    const caption=pick(u.posts),hoursAgo=2+Math.random()*90;
+    const post={id:uid(),userId:u.id,image:botImageFor(u,caption),caption,createdAt:now-hoursAgo*36e5,reactions:{},comments:[],communityScheduled:true};
+    state.posts.push(post);try{await Store.savePost(post)}catch{}
+  }
+  newestFirst();
+}
+function startGilmorePosts(){
+  setInterval(()=>{
+    if(document.hidden)return;
+    for(const u of gilmoreBots()){
+      if(!canScheduleFeedPost(u.id))continue;
+      if(Math.random()<0.0009)botPost(u.id,pick(u.posts));
+    }
+  },5*60000);
+}
+
+/* ---------- Brooklyn Nine-Nine cast: random, staggered posting (same pattern as the other casts) ---------- */
+const B99_IDS=["jake","amy","rosa","terry","holt","boyle","gina","hitchcock","scully"];
+const b99Bots=()=>B99_IDS.map(id=>CONFIG.users[id]).filter(Boolean);
+async function seedB99IfNeeded(){
+  if(await Store.getMeta("npc-seed-b99-v1",false))return;
+  try{await Store.setMeta("npc-seed-b99-v1",true)}catch{}
+  const now=Date.now();
+  for(const u of b99Bots()){
+    if(Math.random()<0.3)continue;
+    const caption=pick(u.posts),hoursAgo=2+Math.random()*90;
+    const post={id:uid(),userId:u.id,image:botImageFor(u,caption),caption,createdAt:now-hoursAgo*36e5,reactions:{},comments:[],communityScheduled:true};
+    state.posts.push(post);try{await Store.savePost(post)}catch{}
+  }
+  newestFirst();
+}
+function startB99Posts(){
+  setInterval(()=>{
+    if(document.hidden)return;
+    for(const u of b99Bots()){
+      if(!canScheduleFeedPost(u.id))continue;
+      if(Math.random()<0.0009)botPost(u.id,pick(u.posts));
+    }
+  },5*60000);
+}
+
+/* ---------- High School Musical cast: random, staggered posting (same pattern as the other casts) ---------- */
+const HSM_IDS=["troy","gabriella","sharpay","ryan","chad","taylor","kelsi","zeke"];
+const hsmBots=()=>HSM_IDS.map(id=>CONFIG.users[id]).filter(Boolean);
+async function seedHSMIfNeeded(){
+  if(await Store.getMeta("npc-seed-hsm-v1",false))return;
+  try{await Store.setMeta("npc-seed-hsm-v1",true)}catch{}
+  const now=Date.now();
+  for(const u of hsmBots()){
+    if(Math.random()<0.3)continue;
+    const caption=pick(u.posts),hoursAgo=2+Math.random()*90;
+    const post={id:uid(),userId:u.id,image:botImageFor(u,caption),caption,createdAt:now-hoursAgo*36e5,reactions:{},comments:[],communityScheduled:true};
+    state.posts.push(post);try{await Store.savePost(post)}catch{}
+  }
+  newestFirst();
+}
+function startHSMPosts(){
+  setInterval(()=>{
+    if(document.hidden)return;
+    for(const u of hsmBots()){
+      if(!canScheduleFeedPost(u.id))continue;
+      if(Math.random()<0.0009)botPost(u.id,pick(u.posts));
+    }
+  },5*60000);
+}
+
+
+/* ---------- movies, musicians, Bonang + Disney ---------- */
+const MOVIE_IDS=["horrorreels","comedyclub","romanceframe","dramadaily","meetcutemovies"];
+const CELEB_IDS=["msaki","sjava","jabulilemajola","jesseclegg","raye","sunelmusician","dave","jcole","maleh","yebba","muzi","onedirection","micasa","liquideep","bonang","disney"];
+const entertainmentBots=()=>CELEB_IDS.map(id=>CONFIG.users[id]).filter(Boolean);
+[...OFFICE_IDS,...GILMORE_IDS,...B99_IDS,...HSM_IDS].forEach(id=>{const u=CONFIG.users[id];if(u){u.minFeedGapHours=u.minFeedGapHours||216;u.minStoryGapHours=u.minStoryGapHours||96}});
+MOVIE_IDS.forEach(id=>{const u=CONFIG.users[id];if(u){u.minFeedGapHours=240;u.minStoryGapHours=30}});
+CELEB_IDS.forEach(id=>{const u=CONFIG.users[id];if(u){u.minFeedGapHours=id==="disney"?216:240;u.minStoryGapHours=id==="bonang"?36:id==="disney"?24:60}});
+function liveTimedPosts(u,now=Date.now()){
+  return (u.timedPosts||[]).filter(x=>!x.from||now>=Date.parse(x.from)).filter(x=>!x.until||now<=Date.parse(x.until));
+}
+function pickAccountPost(u){
+  const timed=liveTimedPosts(u);
+  if(timed.length&&Math.random()<.68)return pick(timed).text;
+  return pick((u.posts&&u.posts.length)?u.posts:timed.map(x=>x.text));
+}
+async function seedEntertainmentIfNeeded(){
+  if(await Store.getMeta("npc-seed-entertainment-v1",false))return;
+  try{await Store.setMeta("npc-seed-entertainment-v1",true)}catch{}
+  const now=Date.now(),ids=[...MOVIE_IDS,...CELEB_IDS];
+  for(const [i,id] of ids.entries()){
+    const u=CONFIG.users[id];if(!u||state.posts.some(p=>p.userId===id))continue;
+    const caption=pickAccountPost(u),hoursAgo=8+(i*13)%220+Math.random()*12;
+    const post={id:uid(),userId:u.id,image:botImageFor(u,caption),caption,createdAt:now-hoursAgo*36e5,reactions:{},comments:[],communityScheduled:true};
+    state.posts.push(post);try{await Store.savePost(post)}catch{}
+  }
+  newestFirst();
+}
+async function seedEntertainmentStoriesIfNeeded(){
+  if(await Store.getMeta("story-seed-entertainment-v1",false))return;
+  const ids=["bonang","disney",MOVIE_IDS[Math.floor(Date.now()/864e5)%MOVIE_IDS.length],"msaki"];
+  for(const id of ids){const u=CONFIG.users[id];if(u)await botStory(id,pickAccountPost(u),{forceImage:!!u.mediaCount})}
+  await Store.setMeta("story-seed-entertainment-v1",true);
+}
+async function dailyMovieStoryIfNeeded(){
+  const d=new Date(),dateKey=[d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-");
+  const key="movie-daily-story-v1:"+dateKey;if(await Store.getMeta(key,false))return;
+  const dayNo=Math.floor(new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime()/864e5);
+  const id=MOVIE_IDS[((dayNo%MOVIE_IDS.length)+MOVIE_IDS.length)%MOVIE_IDS.length],u=CONFIG.users[id];
+  if(!u)return;
+  await botStory(u.id,pickAccountPost(u),{duration:7000});
+  try{await Store.setMeta(key,true)}catch{}
+}
+function startEntertainmentPosts(){
+  setInterval(()=>{
+    if(document.hidden)return;
+    dailyMovieStoryIfNeeded().catch(()=>{});
+    for(const u of [...MOVIE_IDS.map(id=>CONFIG.users[id]).filter(Boolean),...entertainmentBots()]){
+      if(canScheduleFeedPost(u.id)&&Math.random()<0.0012)botPost(u.id,pickAccountPost(u));
+      if(canScheduleStory(u.id)&&Math.random()<(MOVIE_IDS.includes(u.id)?.006:.0032))botStory(u.id,pickAccountPost(u),{forceImage:!!u.mediaCount}).catch(()=>{});
+    }
+  },15*60000);
+}
+
+async function seedBotEngagementIfNeeded(){
+  if(await Store.getMeta("bot-engagement-seed-v1",false))return;
+  const botIds=Object.values(CONFIG.users).filter(u=>u.bot).map(u=>u.id);
+  for(const p of state.posts.filter(p=>CONFIG.users[p.userId]?.bot).slice(0,48)){
+    const pool=botIds.filter(id=>id!==p.userId);
+    const n=2+(socialHash(p.id)%5);
+    for(let i=0;i<n;i++){
+      const id=pool[socialHash(p.id+":"+i)%pool.length],u=CONFIG.users[id];
+      if(!p.reactions[id])p.reactions[id]=weightedReaction(u);
+      if(i<2&&u.comments?.length&&(socialHash(p.id+":c:"+i)%100)<45){
+        p.comments.push({id:uid(),userId:id,text:u.comments[socialHash(p.id+":txt:"+i)%u.comments.length],createdAt:Math.min(Date.now()-60000,p.createdAt+(i+1)*37e5),likes:[],parentId:null});
+      }
+    }
+    try{await Store.savePost(p)}catch{}
+  }
+  await Store.setMeta("bot-engagement-seed-v1",true);
+}
+function startPublicBotStories(){
+  const ids=[...OFFICE_IDS,...GILMORE_IDS,...B99_IDS,...HSM_IDS,...MOVIE_IDS,...CELEB_IDS];
+  setInterval(()=>{
+    if(document.hidden)return;
+    const candidates=shuffle(ids.map(id=>CONFIG.users[id]).filter(Boolean));
+    for(const u of candidates.slice(0,8)){
+      if(!canScheduleStory(u.id))continue;
+      if(Math.random()<0.025){
+        const caption=MOVIE_IDS.includes(u.id)||CELEB_IDS.includes(u.id)?pickAccountPost(u):pick(u.posts);
+        botStory(u.id,caption,{forceImage:!!u.mediaCount}).catch(()=>{});
+        break;
+      }
+    }
+  },30*60000);
+}
+
+/* ---------- one-time cartoon-photo sampler for existing MizzyGram installs ----------
+   Older browser databases already have the text-card seeds marked complete.
+   This adds only a small handful of matching character-photo posts so the
+   new behaviour is visible immediately without flooding the feed. */
+async function seedTvCartoonPostsIfNeeded(){
+  if(await Store.getMeta("npc-cartoon-seed-v1",false))return;
+  try{await Store.setMeta("npc-cartoon-seed-v1",true)}catch{}
+  const casts=[OFFICE_IDS,GILMORE_IDS,B99_IDS,HSM_IDS],now=Date.now();
+  for(const ids of casts){
+    const chosen=shuffle(ids.map(id=>CONFIG.users[id]).filter(u=>u&&u.cartoonCount)).slice(0,2);
+    for(const u of chosen){
+      if(recentPostCount(u.id,30)>=FEED_MAX_POSTS_PER_30_DAYS)continue;
+      const caption=pick(u.posts),image=cartoonImageFor(u,1);
+      const hoursAgo=6+Math.random()*84;
+      const post={id:uid(),userId:u.id,image,caption,createdAt:now-hoursAgo*36e5,reactions:{},comments:[],communityScheduled:true};
+      state.posts.push(post);try{await Store.savePost(post)}catch{}
+    }
+  }
+  newestFirst();
+}
+
 /* =====================================================================
    Views
    ===================================================================== */
 function postCard(p){
   const u=userOf(p.userId),mineReact=p.reactions[state.activeUser],total=totalReactions(p);
   const n=p.comments.length;
-  const alt=p.caption?`Photo by ${u.username}: ${p.caption.slice(0,100)}`:`Photo by ${u.username}`;
+  const alt=p.caption?`${p.mediaType==="video"?"Video":"Photo"} by ${u.username}: ${p.caption.slice(0,100)}`:`${p.mediaType==="video"?"Video":"Photo"} by ${u.username}`;
   const groups=reactionCounts(p).slice(0,3).map(g=>g.emoji).join("");
   const badge=badgeFor(p.id),saved=isSaved(state.activeUser,p.id);
   return `<article class="post" data-id="${p.id}">
     <header class="postHead">
       <button class="ava" data-user="${u.id}" aria-label="${esc(u.name)}'s profile"><img src="${esc(u.avatar)}" alt=""></button>
-      <button class="uname" data-user="${u.id}">${esc(u.username)}</button>${p.mood?`<small class="mood">${esc(p.mood)}</small>`:""}${p.audience==="lizzy"?`<small class="mood">💗 just for Lizzy</small>`:""}
+      <button class="uname" data-user="${u.id}">${esc(u.username)}${verifiedMark(u)}</button>${p.mood?`<small class="mood">${esc(p.mood)}</small>`:""}${p.audience==="lizzy"?`<small class="mood">💗 just for Lizzy</small>`:""}
       <time datetime="${new Date(p.createdAt).toISOString()}">${ago(p.createdAt)}</time>
     </header>
-    <div class="photo ${p.classified&&!p.declassified?"classified":""}" data-dbl>${p.classified&&!p.declassified?`<button class="declass" data-declassify="${p.id}">🕵️ CLASSIFIED — tap to declassify</button>`:""}${badge?`<span class="postBadge ${badge.cls}">${badge.label}</span>`:""}<img src="${p.image}" alt="${esc(alt)}"><span class="burst" aria-hidden="true">${mineReact?reactionOf(mineReact).emoji:I.heart}</span></div>
+    <div class="photo ${p.mediaType==="video"?"videoPost":""} ${p.classified&&!p.declassified?"classified":""}" ${p.mediaType==="video"?"":"data-dbl"}>${p.classified&&!p.declassified?`<button class="declass" data-declassify="${p.id}">🕵️ CLASSIFIED — tap to declassify</button>`:""}${badge?`<span class="postBadge ${badge.cls}">${badge.label}</span>`:""}${p.mediaType==="video"?postMediaHTML(p):`<img src="${p.image}" alt="${esc(alt)}">`}<span class="burst" aria-hidden="true">${mineReact?reactionOf(mineReact).emoji:I.heart}</span></div>
     <div class="actions">
       <div class="likeWrap">
         <button class="act ${mineReact?"on":""}" data-like data-id="${p.id}" aria-pressed="${!!mineReact}" aria-label="${mineReact?"Remove reaction":"Like (hold for more reactions)"}">${mineReact?`<span class="reactEmoji">${reactionOf(mineReact).emoji}</span>`:I.heart}</button>
@@ -914,7 +1968,7 @@ function postCard(p){
       <button class="act ${saved?"on":""}" data-save aria-pressed="${saved}" aria-label="${saved?"Unsave":"Save"}">${I.bookmark}</button>
     </div>
     ${total?`<button class="likes" data-reactions="${p.id}">${groups} ${total} ${total===1?"reaction":"reactions"}</button>`:""}
-    ${p.caption?`<div class="cap"><b>${esc(u.username)}</b>${linkifyCaption(p.caption)}</div>`:""}
+    ${p.caption?`<div class="cap"><b>${esc(u.username)}${verifiedMark(u)}</b>${linkifyCaption(p.caption)}</div>`:""}
     ${n?`<button class="viewC" data-comment>View ${n===1?"1 comment":`all ${n} comments`}</button>`:""}
   </article>`;
 }
@@ -934,7 +1988,7 @@ function storiesBar(){
     const u=userOf(id),unseen=(byUser[id]||[]).some(x=>!state.seenStories.has(x.id));
     return `<div class="storyItem"><button class="storyRing ${unseen?"unseen":""}" data-story-user="${id}"><span class="storyAva"><img src="${esc(u.avatar)}" alt=""></span><span class="storyName">${label}</span></button>${extra||""}</div>`;
   };
-  return `<div class="stories">${ring(me,"Your story",`<button class="storyAdd" data-st-add aria-label="Add to your story">+</button>`)}${order.map(id=>ring(id,esc(userOf(id).name))).join("")}</div>`;
+  return `<div class="stories">${ring(me,"Your story",`<button class="storyAdd" data-st-add aria-label="Add to your story">+</button>`)}${order.map(id=>{const u=userOf(id);return ring(id,esc(u.name)+verifiedMark(u))}).join("")}</div>`;
 }
 
 const renderers={
@@ -957,10 +2011,11 @@ const renderers={
   },
   post(){
     const pend=state.pending;
+    const preview=pend?(pend.mediaType==="video"?`<video src="${esc(pend.preview)}" muted autoplay loop playsinline aria-label="Selected video preview"></video><span class="videoLimit">${Math.ceil(pend.duration||0)}s / ${CONFIG.maxVideoSeconds}s</span>`:`<img src="${pend.image}" alt="Selected photo preview">`):`<span class="dropHint">${I.photo}<b>Choose a photo or video</b><span>Videos can be up to ${CONFIG.maxVideoSeconds} seconds</span></span>`;
     return `<form class="compose" id="composeForm" novalidate>
       <label class="drop">
-        <input type="file" id="photoInput" accept="image/*" aria-label="Choose a photo">
-        ${pend?`<img src="${pend.image}" alt="Selected photo preview">`:`<span class="dropHint">${I.photo}<b>Choose a photo</b><span>Tap to pick one from your device</span></span>`}
+        <input type="file" id="mediaInput" accept="image/*,video/*" aria-label="Choose a photo or video">
+        ${preview}
       </label>
       <label class="lbl" for="caption">Caption</label>
       <textarea id="caption" maxlength="${CONFIG.maxCaption}" placeholder="Write a caption…">${esc(pend?pend.caption:"")}</textarea>
@@ -992,7 +2047,7 @@ const renderers={
   saved(){
     const u=state.activeUser,sv=savedOf(u),col=state.savedCol;
     if(!col){
-      const tl=(id,emoji,name)=>{const ps=savedPosts(u,id),c=ps[0];return `<a class="colTile" href="#saved/${encodeURIComponent(id)}"><span class="colCover">${c?`<img src="${c.image}" alt="">`:`<em>${emoji}</em>`}</span><b>${emoji} ${esc(name)}</b><small>${ps.length} post${ps.length===1?"":"s"}</small></a>`};
+      const tl=(id,emoji,name)=>{const ps=savedPosts(u,id),c=ps[0];return `<a class="colTile" href="#saved/${encodeURIComponent(id)}"><span class="colCover">${c?postMediaHTML(c,"cover"):`<em>${emoji}</em>`}</span><b>${emoji} ${esc(name)}</b><small>${ps.length} post${ps.length===1?"":"s"}</small></a>`};
       return `<div class="hashHead"><a class="backLink" href="#profile" aria-label="Back to profile">${I.back}</a><h1 class="pageTitle">Saved</h1></div><div class="colGrid">${tl("all","🔖","All posts")}${sv.cols.map(c=>tl(c.id,c.emoji,c.name)).join("")}<button class="colTile" data-colform><span class="colCover"><em>＋</em></span><b>New collection</b></button></div>`;
     }
     const c=sv.cols.find(x=>x.id===col),ps=savedPosts(u,col);
@@ -1002,23 +2057,23 @@ const renderers={
     const viewing=state.profileUser||state.activeUser;
     const u=userOf(viewing),isMe=viewing===state.activeUser;
     const mine=state.posts.filter(p=>p.userId===viewing);
-    const followers=followersOf(viewing).length,following=followingOf(viewing).length;
+    const followers=followerCountFor(viewing),following=followingCountFor(viewing);
     const other=otherHuman(state.activeUser);
     return `<section class="pHead">
         <div class="pAva"><img src="${esc(u.avatar)}" alt="${esc(u.name)}'s profile picture"></div>
         <div class="stats">
           <div><b>${mine.length}</b><span>Posts</span></div>
-          <button class="statBtn" data-stat="followers" data-stat-user="${viewing}"><b>${followers}</b><span>Followers</span></button>
-          <button class="statBtn" data-stat="following" data-stat-user="${viewing}"><b>${following}</b><span>Following</span></button>
+          <button class="statBtn" data-stat="followers" data-stat-user="${viewing}"><b>${formatCount(followers)}</b><span>Followers</span></button>
+          <button class="statBtn" data-stat="following" data-stat-user="${viewing}"><b>${formatCount(following)}</b><span>Following</span></button>
         </div>
       </section>
       <section class="pInfo">
-        <h1 class="pName">${esc(u.name)}${u.bot?' <span class="botTag">bot</span>':""}</h1>
+        <h1 class="pName">${esc(u.name)}${verifiedMark(u)}${u.bot&&!u.public?' <span class="botTag">bot</span>':""}</h1>
         <div class="pUser">@${esc(u.username)}</div>
         <p class="pBio">${esc(u.bio)}</p>
         ${(state.rewards[viewing]||[]).filter(x=>x!=="welcome").length?`<p class="pBadges" title="Achievements">${state.rewards[viewing].filter(x=>x!=="welcome").map(x=>REWARDS[x][0]).join(" ")}</p>`:""}
         ${isMe
-          ?`<button class="btn ghost block" data-switch="${other}">Switch to ${esc(userOf(other).name)}</button><a class="btn ghost block achLink" href="#achievements">🏆 Achievements</a>`
+          ?`<button class="btn primary block" data-edit-profile>✏️ Edit Profile</button>${other==="mikael"?"":`<button class="btn ghost block" data-switch="${other}">Switch to ${esc(userOf(other).name)}</button>`}<a class="btn ghost block achLink" href="#achievements">🏆 Achievements</a>`
           :`<button class="btn ${isFollowing(state.activeUser,viewing)?"ghost":"primary"} block" data-follow="${viewing}" aria-pressed="${isFollowing(state.activeUser,viewing)}">${isFollowing(state.activeUser,viewing)?"Following":"Follow"}</button>`}
       </section>
       ${isMe?`<div class="pTabs"><span class="on">${I.grid}Posts</span><a href="#saved">${I.bookmark}Saved</a></div>`:`<div class="gridLabel">${I.grid}<span>Posts</span></div>`}
@@ -1026,7 +2081,7 @@ const renderers={
   }
 };
 
-const tile=p=>`<button class="tile ${p.classified&&!p.declassified?"blur":""}" data-open="${p.id}" aria-label="Open photo${p.caption?": "+esc(p.caption.slice(0,60)):""}"><img src="${p.image}" alt=""></button>`;
+const tile=p=>`<button class="tile ${p.mediaType==="video"?"videoTile":""} ${p.classified&&!p.declassified?"blur":""}" data-open="${p.id}" aria-label="Open ${p.mediaType==="video"?"video":"photo"}${p.caption?": "+esc(p.caption.slice(0,60)):""}">${postMediaHTML(p,"tile")}</button>`;
 
 /* ---------- render + routing ---------- */
 function render(keepScroll){
@@ -1067,30 +2122,40 @@ document.querySelector('.bottom a[data-view="profile"]').addEventListener("click
 
 /* ---------- create post ---------- */
 function bindCompose(){
-  const input=$("photoInput"),cap=$("caption"),count=$("capCount"),err=$("postErr"),btn=$("shareBtn");
+  const input=$("mediaInput"),cap=$("caption"),count=$("capCount"),err=$("postErr"),btn=$("shareBtn");
   const upd=()=>{count.textContent=`${cap.value.length}/${CONFIG.maxCaption}`;if(state.pending)state.pending.caption=cap.value};
   upd();cap.addEventListener("input",upd);
   input.addEventListener("change",async()=>{
     err.textContent="";
     const f=input.files&&input.files[0];if(!f)return;
+    if(state.pending&&state.pending.preview)URL.revokeObjectURL(state.pending.preview);
     try{
-      const image=await prepareImage(f);
-      state.pending={image,caption:cap.value};
+      if(/^video\//.test(f.type)){
+        const v=await prepareVideo(f);
+        state.pending={mediaType:"video",video:v.video,videoType:v.videoType,duration:v.duration,preview:v.preview,caption:cap.value};
+      }else if(/^image\//.test(f.type)){
+        const image=await prepareImage(f);
+        state.pending={mediaType:"photo",image,caption:cap.value};
+      }else throw new Error("Choose a photo or video file.");
       render(true);$("caption").focus();
-    }catch(e){err.textContent=e.message}
+    }catch(e){state.pending=null;err.textContent=e.message;btn.disabled=true}
   });
   $("composeForm").addEventListener("submit",async e=>{
     e.preventDefault();
     if(!state.pending)return;
     btn.disabled=true;err.textContent="";
-    const post={id:uid(),userId:state.activeUser,image:state.pending.image,caption:cap.value.trim(),createdAt:Date.now(),reactions:{},comments:[]};
+    const isVideo=state.pending.mediaType==="video";
+    const post={id:uid(),userId:state.activeUser,mediaType:isVideo?"video":"photo",caption:cap.value.trim(),createdAt:Date.now(),reactions:{},comments:[]};
+    if(isVideo){post.video=state.pending.video;post.videoType=state.pending.videoType;post.duration=state.pending.duration}
+    else post.image=state.pending.image;
     try{
       await Store.savePost(post);
       state.posts.push(post);newestFirst();
       award(state.activeUser,"first_post");
-      pushNews("📸","NEW POST",userOf(state.activeUser).name+" posts a new photo. The app is \"coping\".",post.id);
+      pushNews(isVideo?"🎬":"📸","NEW POST",userOf(state.activeUser).name+` posts a new ${isVideo?"video":"photo"}. The app is "coping".`,post.id);
+      if(state.pending.preview)URL.revokeObjectURL(state.pending.preview);
       state.pending=null;
-      toast("Posted 💗");
+      toast(isVideo?"Video posted 🎬":"Posted 💗");
       location.hash="#home";
       if(state.view==="home")render(false);
       scheduleCommunityReactions(post);
@@ -1190,7 +2255,7 @@ function commentRow(c,isReply){
   return `<div class="cItem ${isReply?"reply":""}">
     <button class="ava sm" data-user="${u.id}" aria-label="${esc(u.name)}'s profile"><img src="${esc(u.avatar)}" alt=""></button>
     <div class="cBody">
-      <div><button class="cUname" data-user="${u.id}">${esc(u.username)}</button> ${c.pinned?'<span class="pinTag">📌 Pinned</span> ':""}${esc(c.text)}</div>
+      <div><button class="cUname" data-user="${u.id}">${esc(u.username)}${verifiedMark(u)}</button> ${c.pinned?'<span class="pinTag">📌 Pinned</span> ':""}${esc(c.text)}</div>
       <div class="cMeta">
         <time>${ago(c.createdAt)}</time>
         ${c.likes.length?`<span>${c.likes.length} like${c.likes.length===1?"":"s"}</span>`:""}
@@ -1240,7 +2305,7 @@ function closeSheet(silent){
 function renderSheet(force){
   const el=$("sheet"),s=state.sheet;
   if(!s){el.hidden=true;return}
-  if(!force&&["story","share","storyCompose","colForm"].includes(s.type)&&el.dataset.type===s.type)return; // don't rebuild while typing / mid-story
+  if(!force&&["story","share","storyCompose","colForm","editProfile"].includes(s.type)&&el.dataset.type===s.type)return; // don't rebuild while typing / mid-story
   el.hidden=false;el.dataset.type=s.type;
 
   if(s.type==="post"){
@@ -1278,7 +2343,7 @@ function renderSheet(force){
         <div class="reactGroup">
           <div class="reactGroupHead">${g.emoji} <b>${g.label}</b><span>${g.count}</span></div>
           ${g.users.map(uidKey=>{const u=userOf(uidKey);return `<button class="reactUser" data-user="${uidKey}">
-            <span class="ava sm"><img src="${esc(u.avatar)}" alt=""></span><span>${esc(u.name)}</span></button>`}).join("")}
+            <span class="ava sm"><img src="${esc(u.avatar)}" alt=""></span><span>${esc(u.name)}${verifiedMark(u)}</span></button>`}).join("")}
         </div>`).join(""):`<div class="cNone">No reactions yet.</div>`}</div></div>`;
 
   }else if(s.type==="followList"){
@@ -1288,7 +2353,7 @@ function renderSheet(force){
       <div class="sheetScroll">${ids.length?ids.map(uidKey=>{
         const u=userOf(uidKey),isMe=uidKey===state.activeUser;
         return `<div class="followRow">
-          <button class="followUser" data-user="${uidKey}"><span class="ava sm"><img src="${esc(u.avatar)}" alt=""></span><span><b>${esc(u.name)}</b><small>@${esc(u.username)}</small></span></button>
+          <button class="followUser" data-user="${uidKey}"><span class="ava sm"><img src="${esc(u.avatar)}" alt=""></span><span><b>${esc(u.name)}${verifiedMark(u)}</b><small>@${esc(u.username)}</small></span></button>
           ${isMe?"":`<button class="btn ${isFollowing(state.activeUser,uidKey)?"ghost":"primary"} sm" data-follow="${uidKey}">${isFollowing(state.activeUser,uidKey)?"Following":"Follow"}</button>`}
         </div>`}).join(""):`<div class="cNone">${s.mode==="followers"?"No followers yet.":"Not following anyone yet."}</div>`}</div></div>`;
 
@@ -1298,7 +2363,7 @@ function renderSheet(force){
     const left=own&&!st.evergreen?` · ${Math.max(1,Math.ceil((st.createdAt+CONFIG.storyHours*36e5-Date.now())/36e5))}h left`:"";
     el.innerHTML=`<div class="sheetBody storySheet" role="dialog" aria-modal="true" aria-label="${esc(u.name)}'s story">
       <div class="svBars">${s.list.map((_,i)=>`<span class="${i<s.index?"done":""}"><i ${i===s.index?`class="cur" style="--d:${dur}ms"`:""}></i></span>`).join("")}</div>
-      <div class="svHead"><span class="ava sm"><img src="${esc(u.avatar)}" alt=""></span><b>${esc(u.name)}</b><span class="svTime">${ago(st.createdAt)}${left}</span><button class="act" data-close aria-label="Close">${I.close}</button></div>
+      <div class="svHead"><span class="ava sm"><img src="${esc(u.avatar)}" alt=""></span><b>${esc(u.name)}${verifiedMark(u)}</b><span class="svTime">${ago(st.createdAt)}${left}</span><button class="act" data-close aria-label="Close">${I.close}</button></div>
       ${body}${st.caption?`<div class="svCap">${esc(st.caption)}</div>`:""}
       <button class="svZone left" type="button" data-story-prev aria-label="Previous story"></button>
       <button class="svZone right" type="button" data-story-next aria-label="Next story"></button>
@@ -1326,10 +2391,41 @@ function renderSheet(force){
       ${c?`<button class="colRow danger" data-col-del="${c.id}"><span>🗑️</span><b>Delete collection</b></button>`:""}</div>`;
     $("colName").focus();
 
+  }else if(s.type==="editProfile"){
+    const u=userOf(state.activeUser);
+    const name=s.name??u.name,bio=s.bio??u.bio,avatar=s.avatar||u.avatar;
+    el.innerHTML=`<div class="sheetBody" role="dialog" aria-modal="true" aria-label="Edit profile"><div class="sheetHead"><h2>Edit profile</h2><button class="act" data-close aria-label="Close">${I.close}</button></div>
+      <div class="sheetScroll">
+        <form class="cForm editProfileForm" id="editProfileForm">
+          <label class="epAvaPick"><img src="${esc(avatar)}" alt="Profile picture preview"><input type="file" id="epAvaInput" accept="image/*" aria-label="Choose a new profile picture"><span>Change photo</span></label>
+          <label class="lbl" for="epName">Name</label>
+          <input id="epName" maxlength="40" value="${esc(name)}" placeholder="Your name" autocomplete="off">
+          <label class="lbl" for="epBio">Bio</label>
+          <textarea id="epBio" maxlength="150" placeholder="Write a bio…">${esc(bio)}</textarea>
+          <div class="count" id="epCount">${bio.length}/150</div>
+          <div class="err" id="epErr" role="alert"></div>
+          <button class="btn primary block" type="submit">Save</button>
+        </form>
+      </div></div>`;
+    $("epName").focus();
+    $("epBio").addEventListener("input",()=>{$("epCount").textContent=`${$("epBio").value.length}/150`});
+    $("epAvaInput").addEventListener("change",async()=>{
+      const f=$("epAvaInput").files&&$("epAvaInput").files[0];if(!f)return;
+      const err=$("epErr");err.textContent="";
+      try{
+        const image=await prepareImage(f);
+        // capture whatever's currently typed so the rebuild below doesn't lose it
+        state.sheet.name=$("epName").value;
+        state.sheet.bio=$("epBio").value;
+        state.sheet.avatar=image;
+        renderSheet(true);
+      }catch(e){err.textContent=e.message}
+    });
+
   }else if(s.type==="share"){
     const p=state.posts.find(x=>x.id===s.id);if(!p){closeSheet();return}
     const targets=[...CONFIG.humans.filter(h=>h!==state.activeUser),...Object.values(CONFIG.users).filter(u=>u.bot).map(u=>u.id)];
-    el.innerHTML=`<div class="sheetBody" role="dialog" aria-modal="true" aria-label="Share"><div class="sheetHead"><h2>Share</h2><button class="act" data-close aria-label="Close">${I.close}</button></div><div class="sheetScroll">${targets.map(id=>{const u=userOf(id),on=s.sel.includes(id);return `<button class="colRow" data-share-to="${id}" aria-pressed="${on}"><span class="ava sm"><img src="${esc(u.avatar)}" alt=""></span><b>${esc(u.name)}</b><i>${on?"✓":""}</i></button>`}).join("")}
+    el.innerHTML=`<div class="sheetBody" role="dialog" aria-modal="true" aria-label="Share"><div class="sheetHead"><h2>Share</h2><button class="act" data-close aria-label="Close">${I.close}</button></div><div class="sheetScroll">${targets.map(id=>{const u=userOf(id),on=s.sel.includes(id);return `<button class="colRow" data-share-to="${id}" aria-pressed="${on}"><span class="ava sm"><img src="${esc(u.avatar)}" alt=""></span><b>${esc(u.name)}${verifiedMark(u)}</b><i>${on?"✓":""}</i></button>`}).join("")}
       <div class="sharePad"><input id="shareNote" class="shareNote" maxlength="120" placeholder="Add a message…" value="${esc(s.note||"")}" aria-label="Message"><button class="btn primary block" data-share-send ${s.sel.length?"":"disabled"}>Send${s.sel.length?" ("+s.sel.length+")":""}</button><button class="btn ghost block" data-share-story>Add to your story</button></div></div></div>`;
   }
 }
@@ -1369,6 +2465,7 @@ $("sheet").addEventListener("click",e=>{
 $("sheet").addEventListener("submit",async e=>{
   e.preventDefault();
   if(e.target.id==="colForm")return submitColForm();
+  if(e.target.id==="editProfileForm")return submitEditProfile();
   const s=state.sheet;if(!s||s.type!=="comments")return;
   const inp=$("cInput"),text=inp.value.trim();if(!text)return;
   inp.value="";
@@ -1417,6 +2514,8 @@ $("view").addEventListener("click",e=>{
   if(followBtn)return toggleFollow(followBtn.dataset.follow);
   const switchBtn=e.target.closest("[data-switch]");
   if(switchBtn)return switchUser(switchBtn.dataset.switch);
+  const editProfileBtn=e.target.closest("[data-edit-profile]");
+  if(editProfileBtn)return openSheet({type:"editProfile"});
   const userBtn=e.target.closest("[data-user]");
   if(userBtn)return goProfile(userBtn.dataset.user);
   handlePostClick(e);
@@ -1437,6 +2536,7 @@ function migratePost(p){
   delete p.likes;
   p.comments=(p.comments||[]).map(c=>({likes:[],parentId:null,...c}));
   if(p.communityScheduled===undefined)p.communityScheduled=false;
+  if(!p.mediaType)p.mediaType=p.video?"video":"photo";
   return p;
 }
 
@@ -1447,6 +2547,15 @@ function migratePost(p){
     state.posts=(await Store.allPosts()).map(migratePost);newestFirst();
     await seedCommunityIfNeeded();
     await seedPresidentIfNeeded();
+    await seedOfficeIfNeeded();
+    await seedGilmoreIfNeeded();
+    await seedB99IfNeeded();
+    await seedHSMIfNeeded();
+    await seedEntertainmentIfNeeded();
+    await dailyMovieStoryIfNeeded();
+    await seedTvCartoonPostsIfNeeded();
+    await seedEntertainmentStoriesIfNeeded();
+    await seedBotEngagementIfNeeded();
     // give the community a chance to catch up on any older posts that never got reactions
     state.posts.filter(p=>!p.communityScheduled&&CONFIG.humans.includes(p.userId)).forEach(scheduleCommunityReactions);
     state.stories=await Store.allStories();
@@ -1457,6 +2566,7 @@ function migratePost(p){
     if(savedGraph){
       followGraph=followGraphDefault();
       for(const k in savedGraph)followGraph[k]=new Set(savedGraph[k]);
+      enrichBotFollowGraph(followGraph);
     }
     state.activeUser=await Store.getMeta("active-user",CONFIG.me);
     if(!CONFIG.users[state.activeUser])state.activeUser=CONFIG.me;
@@ -1470,8 +2580,12 @@ function migratePost(p){
     state.lastEvent=await Store.getMeta("event-last",Date.now());
     await seedNewsIfNeeded();
     await seedNotifsIfNeeded();
+    const profileOverrides=await Store.getMeta("profile-overrides",{});
+    for(const uidKey in profileOverrides){
+      if(CONFIG.users[uidKey])Object.assign(CONFIG.users[uidKey],profileOverrides[uidKey]);
+    }
   }catch{}
-  route();startEvents();startHQ();
+  route();startEvents();startHQ();startOfficePosts();startGilmorePosts();startB99Posts();startHSMPosts();startEntertainmentPosts();startPublicBotStories();
   if(!Store.persistent)toast("Heads up: this browser can't save posts");
 })();
 })();
