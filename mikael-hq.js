@@ -103,16 +103,23 @@ $("moodSendBtn")?.addEventListener("click",async()=>{
 });
 
 // ---- MizzyGram HQ ----
-const MG_ACCTS=[["mikael","🖤 Mikael"],["bankofmicky","💰 @BankOfMicky"],["bowlingfederation","🎳 @BowlingFederation"],["chocolateemergency","🍫 @ChocolateEmergency"],["thedailygobshite","📰 @TheDailyGobshite"]];
-const MG_REACTS=[["love","❤️ Love"],["funny","😂 Funny"],["attitude","😈 Attitude"],["cute","😍 Cute"],["fire","🔥 Fire"],["bowling","🎳 Bowling"],["chocolate","🍫 Chocolate"],["suspicious","👀 Suspicious"]];
+const MG_ACCTS=[
+  ["mikael","🖤 Mikael"],["bankofmicky","💰 @BankOfMicky"],["bowlingfederation","🎳 @BowlingFederation"],
+  ["chocolateemergency","🍫 @ChocolateEmergency"],["thedailygobshite","📰 @TheDailyGobshite"]
+];
+const MG_REACTS=[["love","❤️"],["funny","😂"],["attitude","😈"],["cute","😍"],["fire","🔥"],["bowling","🎳"],["chocolate","🍫"],["suspicious","👀"]];
 const MG_MAX_VIDEO_SECONDS=30,MG_MAX_VIDEO_BYTES=16*1024*1024;
-let mgAcct="mikael",mgSnap=null,mgAudience="everyone",mgPreviewUrl=null;
-function mgAcctBtns(){$("mgAccounts").innerHTML=MG_ACCTS.map(([id,l])=>`<button class="annoy-btn ${id===mgAcct?"picked":""}" data-mg-acct="${id}">${l}</button>`).join("");document.querySelectorAll("[data-mg-acct]").forEach(b=>b.onclick=()=>{mgAcct=b.dataset.mgAcct;mgAcctBtns()})}
+let mgAcct="mikael",mgSnap=null,mgAudience="everyone",mgPreviewUrl=null,mgTimer=null;
+const mgName=id=>({lizzy:"Lizzy",mikael:"Mikael",bankofmicky:"Bank of Micky",bowlingfederation:"Bowling Federation",chocolateemergency:"Chocolate Emergency",thedailygobshite:"The Daily Gobshite"}[id]||("@"+id));
+const mgAgo=t=>{const s=Math.max(0,Math.floor((Date.now()-Number(t||0))/1000));if(s<60)return"now";if(s<3600)return Math.floor(s/60)+"m";if(s<86400)return Math.floor(s/3600)+"h";return Math.floor(s/86400)+"d"};
+function mgAcctBtns(){
+  $("mgAccounts").innerHTML=MG_ACCTS.map(([id,l])=>`<button class="mgAcct ${id===mgAcct?"on":""}" data-mg-acct="${id}"><span class="mgAva">${l.split(" ")[0]}</span><small>${esc(l.replace(/^\S+\s*/,""))}</small></button>`).join("");
+  document.querySelectorAll("[data-mg-acct]").forEach(b=>b.onclick=()=>{mgAcct=b.dataset.mgAcct;mgAcctBtns()});
+}
 mgAcctBtns();
 $("mgMood").innerHTML='<option value="">🙂 Mood: none</option>'+MOOD_OPTIONS.map(([id,l])=>`<option value="${esc(l)}">${esc(l)}</option>`).join("");
-$("mgReaction").innerHTML=MG_REACTS.map(([id,l])=>`<option value="${id}">${l}</option>`).join("");
 document.querySelectorAll("[data-aud]").forEach(b=>b.onclick=()=>{mgAudience=b.dataset.aud;document.querySelectorAll("[data-aud]").forEach(x=>x.classList.toggle("on",x===b))});
-function mgImage(file){return new Promise((res,rej)=>{const u=URL.createObjectURL(file),i=new Image();i.onload=()=>{const k=Math.min(1,900/Math.max(i.naturalWidth,i.naturalHeight)),c=document.createElement("canvas");c.width=Math.round(i.naturalWidth*k);c.height=Math.round(i.naturalHeight*k);const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);x.drawImage(i,0,0,c.width,c.height);URL.revokeObjectURL(u);res(c.toDataURL("image/jpeg",.8))};i.onerror=()=>{URL.revokeObjectURL(u);rej(new Error("Couldn't read that photo."))};i.src=u})}
+function mgImage(file){return new Promise((res,rej)=>{const u=URL.createObjectURL(file),i=new Image();i.onload=()=>{const k=Math.min(1,900/Math.max(i.naturalWidth,i.naturalHeight)),c=document.createElement("canvas");c.width=Math.round(i.naturalWidth*k);c.height=Math.round(i.naturalHeight*k);const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);x.drawImage(i,0,0,c.width,c.height);URL.revokeObjectURL(u);res(c.toDataURL("image/jpeg",.78))};i.onerror=()=>{URL.revokeObjectURL(u);rej(new Error("Couldn't read that photo."))};i.src=u})}
 function mgDataURL(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result||""));r.onerror=()=>rej(new Error("Couldn't read that video."));r.readAsDataURL(file)})}
 function mgVideo(file){return new Promise((resolve,reject)=>{
   if(!file||!/^video\//.test(file.type))return reject(new Error("Please choose a video file."));
@@ -122,9 +129,8 @@ function mgVideo(file){return new Promise((resolve,reject)=>{
   v.onerror=()=>{URL.revokeObjectURL(u);reject(new Error("Couldn't read that video. Try MP4, MOV or WebM."))};v.src=u;
 })}
 function clearMgPreview(){if(mgPreviewUrl){URL.revokeObjectURL(mgPreviewUrl);mgPreviewUrl=null}$("mgPreview").innerHTML="";$("mgPhotoLbl").innerHTML='📷🎬 Add photo or video <small>videos max 30 sec</small>'}
-$("mgPhoto").onchange=async()=>{
-  clearMgPreview();const f=$("mgPhoto").files[0];if(!f)return;
-  mgPreviewUrl=URL.createObjectURL(f);
+$("mgPhoto").onchange=()=>{
+  clearMgPreview();const f=$("mgPhoto").files[0];if(!f)return;mgPreviewUrl=URL.createObjectURL(f);
   if(/^video\//.test(f.type)){
     const v=document.createElement("video");v.src=mgPreviewUrl;v.controls=true;v.muted=true;v.playsInline=true;v.preload="metadata";
     v.onloadedmetadata=()=>{$("mgPreview").innerHTML="";$("mgPreview").appendChild(v);const m=document.createElement("div");m.className="mgPreviewMeta";m.textContent=`🎬 ${Math.ceil(v.duration||0)}s / ${MG_MAX_VIDEO_SECONDS}s · ${(f.size/1048576).toFixed(1)} MB`;$("mgPreview").appendChild(m);$("mgPhotoLbl").innerHTML='🎬 Video selected <small>max 30 sec</small>'};
@@ -133,47 +139,42 @@ $("mgPhoto").onchange=async()=>{
   else{$("mgPostResult").textContent="Choose an image or video file.";$("mgPhoto").value="";clearMgPreview()}
 };
 const mgPush=command=>api("mg_hq_push",{command});
+function mgRenderFeed(){
+  const feed=$("mgFeed"),posts=mgSnap?.posts||[];
+  if(!posts.length){feed.innerHTML='<div class="mgEmpty">No synced posts yet.<br>Open MizzyGram on Lizzy’s site once, then press ↻.</div>';return}
+  feed.innerHTML=posts.slice(0,40).map(p=>{
+    const rx=Object.entries(p.rx||{}).map(([k,n])=>`${(MG_REACTS.find(x=>x[0]===k)||[0,"❤️"])[1]} ${n}`).join(" · ")||"No reactions yet";
+    const comments=(p.comments||[]).slice(-4).map(c=>`<div class="mgC ${c.parentId?"reply":""}"><span><b>${esc(mgName(c.userId))}</b> ${esc(c.text)}</span></div>`).join("");
+    const media=p.mediaType==="video"?'<div class="mgCardArt" style="background:linear-gradient(135deg,#2a1030,#7a35dc)"><i>🎬</i><p>Video post</p></div>':p.thumb?`<div class="mgImg"><img src="${esc(p.thumb)}" alt=""></div>`:'<div class="mgCardArt" style="background:linear-gradient(135deg,#ff4d9a,#7a35dc)"><i>📷</i><p>Photo post</p></div>';
+    return `<article class="mgPost" data-mg-post="${esc(p.id)}"><div class="mgPH"><span class="mgAva">${p.userId==="lizzy"?"🌸":p.userId==="mikael"?"🖤":"✨"}</span><b>${esc(mgName(p.userId))}</b>${p.mood?`<span class="mgMood">${esc(p.mood)}</span>`:""}<time>${mgAgo(p.createdAt)}</time></div>${media}<div class="mgIcons"><span>♡</span><span>◯</span><span class="r">${p.audience==="lizzy"?"💗":"🌍"}</span></div><div class="mgRx">${esc(rx)}</div>${p.caption?`<div class="mgCap"><b>${esc(mgName(p.userId))}</b> ${esc(p.caption)}</div>`:""}${comments}<div class="mgBar">${MG_REACTS.slice(0,5).map(([id,e])=>`<button class="mgLike ${p.mine===id?"on":""}" data-mg-react="${id}" data-post="${esc(p.id)}">${e}</button>`).join("")}</div><div class="mgCmt"><input data-mg-comment-input="${esc(p.id)}" placeholder="Comment as Mikael…"><button class="primary" data-mg-comment-send="${esc(p.id)}">Send</button></div></article>`;
+  }).join("");
+  feed.querySelectorAll("[data-mg-react]").forEach(b=>b.onclick=async()=>{b.disabled=true;try{await mgPush({kind:"react",postId:b.dataset.post,reaction:b.dataset.mgReact});$("mgPostResult").textContent="✅ Reaction queued.";setTimeout(loadMg,1200)}catch(e){$("mgPostResult").textContent=e.message}finally{b.disabled=false}});
+  feed.querySelectorAll("[data-mg-comment-send]").forEach(b=>b.onclick=async()=>{const input=feed.querySelector(`[data-mg-comment-input="${CSS.escape(b.dataset.mgCommentSend)}"]`),txt=input?.value.trim();if(!txt)return;b.disabled=true;try{await mgPush({kind:"comment",postId:b.dataset.mgCommentSend,text:txt});input.value="";$("mgPostResult").textContent="✅ Comment queued.";setTimeout(loadMg,1200)}catch(e){$("mgPostResult").textContent=e.message}finally{b.disabled=false}});
+}
 async function loadMg(){
+  const live=$("mgLive");
   try{
-    mgSnap=(await api("mg_snapshot_get")).snapshot;
-    const posts=(mgSnap?.posts||[]).filter(p=>p.userId==="lizzy");
-    $("mgPostSel").innerHTML='<option value="latest">Lizzy\'s latest post</option>'+posts.map(p=>`<option value="${esc(p.id)}">${esc((p.caption||"(post)").slice(0,50))}</option>`).join("");
-    fillComments();
-  }catch(e){$("mgActResult").textContent="No posts synced yet — open MizzyGram on Lizzy's device. ("+e.message+")"}
+    const d=await api("mg_snapshot_get");mgSnap=d.snapshot||{posts:[]};
+    if(live){live.classList.add("on");live.textContent=mgSnap.at?`● synced ${mgAgo(mgSnap.at)} ago`:"● connected"}
+    mgRenderFeed();
+  }catch(e){if(live){live.classList.remove("on");live.textContent="○ not synced"}$("mgFeed").innerHTML=`<div class="mgEmpty">No posts synced yet.<br>${esc(e.message)}<br><br>Open MizzyGram on Lizzy’s site, then press ↻.</div>`}
 }
-function fillComments(){
-  const id=$("mgPostSel").value,p=(mgSnap?.posts||[]).find(x=>x.id===id)||(mgSnap?.posts||[]).find(x=>x.userId==="lizzy");
-  $("mgCommentSel").innerHTML='<option value="">— comment: none (top-level) —</option>'+(p?.comments||[]).map(c=>`<option value="${esc(c.id)}">${c.pinned?"📌 ":""}@${esc(c.userId)}: ${esc(c.text)}</option>`).join("");
-}
-$("mgPostSel").onchange=fillComments;
 $("mgRefresh").onclick=loadMg;
-document.querySelector('[data-view="mizzygram"]').addEventListener("click",()=>{$("viewTitle").textContent="📸 MizzyGram HQ";loadMg()});
+document.querySelector('[data-view="mizzygram"]')?.addEventListener("click",()=>{$("viewTitle").textContent="📸 MizzyGram HQ";loadMg();clearInterval(mgTimer);mgTimer=setInterval(loadMg,8000)});
 $("mgPost").onclick=async()=>{
-  const caption=$("mgCaption").value.trim(),f=$("mgPhoto").files[0];
-  if(!caption&&!f&&!$("mgTags").value.trim()){$("mgPostResult").textContent="Add a photo, video, caption or hashtags first.";return}
-  $("mgPostResult").textContent="Sending…";
+  const caption=$("mgCaption").value.trim(),f=$("mgPhoto").files[0],tags=$("mgTags").value.trim();
+  if(!caption&&!f&&!tags){$("mgPostResult").textContent="Add a photo, video, caption or hashtags first.";return}
+  $("mgPost").disabled=true;$("mgPostResult").textContent="Sending to MizzyGram queue…";
   try{
-    const cmd={kind:"post",account:mgAcct,caption,tags:$("mgTags").value,mood:$("mgMood").value,audience:mgAudience};
+    const cmd={kind:"post",account:mgAcct,caption,tags,mood:$("mgMood").value,audience:mgAudience};
     if(f&&/^video\//.test(f.type)){const v=await mgVideo(f);Object.assign(cmd,{mediaType:"video",video:v.video,videoType:v.videoType,duration:v.duration})}
     else if(f&&/^image\//.test(f.type)){cmd.mediaType="photo";cmd.image=await mgImage(f)}
     else if(f)throw new Error("Choose an image or video file.");
-    await mgPush(cmd);
-    $("mgPostResult").textContent="✅ Queued — posting as "+mgAcct+(cmd.mediaType==="video"?" with a video.":".");
+    const out=await mgPush(cmd);if(!out?.success)throw new Error(out?.error||"Worker did not accept the post.");
+    $("mgPostResult").textContent="✅ Worker received it. It will appear when Lizzy’s MizzyGram syncs (normally within 10 seconds while open).";
     $("mgCaption").value="";$("mgTags").value="";$("mgPhoto").value="";clearMgPreview();
-  }catch(e){$("mgPostResult").textContent=e.message}
+    setTimeout(loadMg,3500);setTimeout(loadMg,11000);
+  }catch(e){$("mgPostResult").textContent="❌ "+e.message}finally{$("mgPost").disabled=false}
 };
-document.querySelectorAll("[data-mg-act]").forEach(b=>b.onclick=async()=>{
-  const act=b.dataset.mgAct,postId=$("mgPostSel").value||"latest",cid=$("mgCommentSel").value,text=$("mgText").value.trim();
-  if((act==="comment"||act==="reply")&&!text){$("mgActResult").textContent="Write some text first.";return}
-  if((act==="reply"||act==="pin")&&!cid){$("mgActResult").textContent="Pick a comment first.";return}
-  const cmd={kind:act,postId};
-  if(act==="react")cmd.reaction=$("mgReaction").value;
-  if(act==="comment"||act==="reply")cmd.text=text;
-  if(act==="reply")cmd.parentId=cid;
-  if(act==="pin")cmd.commentId=cid;
-  try{await mgPush(cmd);$("mgActResult").textContent="✅ Queued: "+act;if(cmd.text)$("mgText").value=""}catch(e){$("mgActResult").textContent=e.message}
-});
-document.querySelectorAll("[data-mg-event]").forEach(b=>b.onclick=async()=>{
-  try{await mgPush({kind:"event",event:b.dataset.mgEvent});$("mgEvResult").textContent="✅ Triggered: "+b.textContent}catch(e){$("mgEvResult").textContent=e.message}
-});
+document.querySelectorAll("[data-mg-event]").forEach(b=>b.onclick=async()=>{try{await mgPush({kind:"event",event:b.dataset.mgEvent});$("mgEvResult").textContent="✅ Triggered: "+b.textContent;setTimeout(loadMg,2500)}catch(e){$("mgEvResult").textContent=e.message}});
 })();
