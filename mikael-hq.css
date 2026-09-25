@@ -71,3 +71,11 @@
 .mgCmt .primary{padding:0 16px;border-radius:14px}
 #mgToast{position:fixed;left:50%;bottom:28px;z-index:99;padding:11px 18px;border-radius:999px;background:#2a1030;color:#fff;font-size:14px;font-weight:600;transform:translate(-50%,14px);opacity:0;pointer-events:none;transition:.2s}
 #mgToast.show{opacity:1;transform:translate(-50%,0)}
+
+
+/* MizzyGram HQ video upload */
+.mgDrop span{display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:center}
+.mgDrop span small{font-size:11px;font-weight:600;opacity:.72}
+.mgPreview:empty{display:none}
+.mgPreview img,.mgPreview video{display:block;width:100%;max-height:420px;object-fit:contain;background:#111}
+.mgPreview .mgPreviewMeta{padding:8px 10px;font-size:12px;color:var(--soft);background:#fff}

@@ -1097,6 +1097,19 @@ function prepareVideo(file){
     v.src=preview;
   });
 }
+function dataUrlToBlob(dataUrl){
+  const m=String(dataUrl||"").match(/^data:([^;,]+)(;base64)?,(.*)$/s);
+  if(!m)return null;
+  const mime=m[1]||"application/octet-stream",body=m[3]||"";
+  try{
+    if(m[2]){
+      const bin=atob(body),arr=new Uint8Array(bin.length);
+      for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
+      return new Blob([arr],{type:mime});
+    }
+    return new Blob([decodeURIComponent(body)],{type:mime});
+  }catch{return null}
+}
 const videoObjectUrls=new Map();
 function videoSrc(p){
   if(!p||!p.video)return "";
@@ -1649,10 +1662,18 @@ async function applyCommand(c){
       const u=CONFIG.users[c.account];if(!u)return;
       const tags=String(c.tags||"").split(/[\s,]+/).filter(Boolean).map(t=>"#"+t.replace(/^#+/,"")).join(" ");
       const caption=[String(c.caption||"").slice(0,CONFIG.maxCaption),tags].filter(Boolean).join(" ").trim(),t=u.tile||["💭","#ff8fce","#7a35dc"];
-      const post={id:uid(),userId:u.id,image:c.image||cardImage(caption||"…",t[0],t[1],t[2]),caption,mood:c.mood||"",audience:c.audience==="lizzy"?"lizzy":"everyone",createdAt:Date.now(),reactions:{},comments:[],communityScheduled:c.audience==="lizzy"};
+      const isVideo=c.mediaType==="video";
+      let post;
+      if(isVideo){
+        const duration=Number(c.duration||0),blob=dataUrlToBlob(c.video);
+        if(c.videoMissing||!blob||!/^video\//.test(blob.type)||!Number.isFinite(duration)||duration<=0||duration>CONFIG.maxVideoSeconds+.05)return;
+        post={id:uid(),userId:u.id,mediaType:"video",video:blob,videoType:c.videoType||blob.type||"video/mp4",duration,caption,mood:c.mood||"",audience:c.audience==="lizzy"?"lizzy":"everyone",createdAt:Date.now(),reactions:{},comments:[],communityScheduled:c.audience==="lizzy"};
+      }else{
+        post={id:uid(),userId:u.id,mediaType:"photo",image:c.image||cardImage(caption||"…",t[0],t[1],t[2]),caption,mood:c.mood||"",audience:c.audience==="lizzy"?"lizzy":"everyone",createdAt:Date.now(),reactions:{},comments:[],communityScheduled:c.audience==="lizzy"};
+      }
       state.posts.push(post);newestFirst();try{await Store.savePost(post)}catch{}
       notify({to:"lizzy",from:u.id,kind:"newpost",postId:post.id,text:post.audience==="lizzy"?"Just for you 💗":""});
-      if(u.bot)pushNews("📰","@"+u.username.toUpperCase(),caption.slice(0,90),post.id);
+      if(u.bot)pushNews(isVideo?"🎬":"📰","@"+u.username.toUpperCase(),caption.slice(0,90),post.id);
       if(post.audience!=="lizzy")scheduleCommunityReactions(post);
       break}
     case"like":case"react":
