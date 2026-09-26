@@ -109,7 +109,7 @@ const MG_ACCTS=[
 ];
 const MG_REACTS=[["love","❤️"],["funny","😂"],["attitude","😈"],["cute","😍"],["fire","🔥"],["bowling","🎳"],["chocolate","🍫"],["suspicious","👀"]];
 const MG_MAX_VIDEO_SECONDS=30,MG_MAX_VIDEO_BYTES=16*1024*1024;
-let mgAcct="mikael",mgSnap=null,mgAudience="everyone",mgPreviewUrl=null,mgTimer=null;
+let mgAcct="mikael",mgSnap=null,mgAudience="everyone",mgPreviewUrl=null,mgTimer=null,mgMediaObserver=null;const mgMediaCache=new Map();
 const mgName=id=>({lizzy:"Lizzy",mikael:"Mikael",bankofmicky:"Bank of Micky",bowlingfederation:"Bowling Federation",chocolateemergency:"Chocolate Emergency",thedailygobshite:"The Daily Gobshite"}[id]||("@"+id));
 const mgAgo=t=>{const s=Math.max(0,Math.floor((Date.now()-Number(t||0))/1000));if(s<60)return"now";if(s<3600)return Math.floor(s/60)+"m";if(s<86400)return Math.floor(s/3600)+"h";return Math.floor(s/86400)+"d"};
 function mgAcctBtns(){
@@ -139,15 +139,45 @@ $("mgPhoto").onchange=()=>{
   else{$("mgPostResult").textContent="Choose an image or video file.";$("mgPhoto").value="";clearMgPreview()}
 };
 const mgPush=command=>api("mg_hq_push",{command});
+function mgMediaMarkup(p,media){
+  if(media){
+    if(p.mediaType==="video"){
+      if(media.video)return `<div class="mgImg mgVideo"><video controls playsinline preload="metadata" ${media.preview?`poster="${esc(media.preview)}"`:""}><source src="${esc(media.video)}" type="${esc(media.videoType||"video/mp4")}"></video><div class="mgMediaMeta">🎬 ${p.duration?Math.ceil(p.duration)+"s":"Video"} · synced from Lizzy</div></div>`;
+      if(media.preview)return `<div class="mgImg mgVideoPoster"><img src="${esc(media.preview)}" alt="Video preview"><span class="mgPlayBadge">▶</span><div class="mgMediaMeta">🎬 ${p.duration?Math.ceil(p.duration)+"s · ":""}preview frame — original video was too large to sync</div></div>`;
+    }else if(media.preview)return `<div class="mgImg"><img src="${esc(media.preview)}" alt="Photo posted by ${esc(mgName(p.userId))}"></div>`;
+  }
+  if(p.thumb)return `<div class="mgImg"><img src="${esc(p.thumb)}" alt=""></div>`;
+  return p.mediaType==="video"?'<div class="mgCardArt mgLoadingMedia"><i>🎬</i><p>Loading video…</p></div>':'<div class="mgCardArt mgLoadingMedia" style="background:linear-gradient(135deg,#ff4d9a,#7a35dc)"><i>📷</i><p>Loading photo…</p></div>';
+}
+async function mgLoadMedia(post){
+  if(!post?.mediaAvailable)return null;
+  if(mgMediaCache.has(post.id))return mgMediaCache.get(post.id);
+  try{const d=await api("mg_media_get",{postId:post.id}),m=d.media||null;if(m)mgMediaCache.set(post.id,m);return m}catch{return null}
+}
+function mgHydrateMedia(posts){
+  if(mgMediaObserver)mgMediaObserver.disconnect();
+  const byId=new Map(posts.map(p=>[p.id,p]));
+  const loadSlot=async slot=>{
+    const p=byId.get(slot.dataset.mgMediaSlot);if(!p||slot.dataset.loaded==="1")return;slot.dataset.loaded="1";
+    const media=await mgLoadMedia(p);if(!slot.isConnected)return;
+    slot.innerHTML=mgMediaMarkup(p,media);
+  };
+  if("IntersectionObserver" in window){
+    mgMediaObserver=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){mgMediaObserver.unobserve(e.target);loadSlot(e.target)}}),{rootMargin:"500px 0px"});
+    document.querySelectorAll("[data-mg-media-slot]").forEach(slot=>mgMediaObserver.observe(slot));
+  }else document.querySelectorAll("[data-mg-media-slot]").forEach(loadSlot);
+}
 function mgRenderFeed(){
   const feed=$("mgFeed"),posts=mgSnap?.posts||[];
   if(!posts.length){feed.innerHTML='<div class="mgEmpty">No synced posts yet.<br>Open MizzyGram on Lizzy’s site once, then press ↻.</div>';return}
-  feed.innerHTML=posts.slice(0,40).map(p=>{
+  const shown=posts.slice(0,40);
+  feed.innerHTML=shown.map(p=>{
     const rx=Object.entries(p.rx||{}).map(([k,n])=>`${(MG_REACTS.find(x=>x[0]===k)||[0,"❤️"])[1]} ${n}`).join(" · ")||"No reactions yet";
     const comments=(p.comments||[]).slice(-4).map(c=>`<div class="mgC ${c.parentId?"reply":""}"><span><b>${esc(mgName(c.userId))}</b> ${esc(c.text)}</span></div>`).join("");
-    const media=p.mediaType==="video"?'<div class="mgCardArt" style="background:linear-gradient(135deg,#2a1030,#7a35dc)"><i>🎬</i><p>Video post</p></div>':p.thumb?`<div class="mgImg"><img src="${esc(p.thumb)}" alt=""></div>`:'<div class="mgCardArt" style="background:linear-gradient(135deg,#ff4d9a,#7a35dc)"><i>📷</i><p>Photo post</p></div>';
+    const media=`<div data-mg-media-slot="${esc(p.id)}">${mgMediaMarkup(p,mgMediaCache.get(p.id)||null)}</div>`;
     return `<article class="mgPost" data-mg-post="${esc(p.id)}"><div class="mgPH"><span class="mgAva">${p.userId==="lizzy"?"🌸":p.userId==="mikael"?"🖤":"✨"}</span><b>${esc(mgName(p.userId))}</b>${p.mood?`<span class="mgMood">${esc(p.mood)}</span>`:""}<time>${mgAgo(p.createdAt)}</time></div>${media}<div class="mgIcons"><span>♡</span><span>◯</span><span class="r">${p.audience==="lizzy"?"💗":"🌍"}</span></div><div class="mgRx">${esc(rx)}</div>${p.caption?`<div class="mgCap"><b>${esc(mgName(p.userId))}</b> ${esc(p.caption)}</div>`:""}${comments}<div class="mgBar">${MG_REACTS.slice(0,5).map(([id,e])=>`<button class="mgLike ${p.mine===id?"on":""}" data-mg-react="${id}" data-post="${esc(p.id)}">${e}</button>`).join("")}</div><div class="mgCmt"><input data-mg-comment-input="${esc(p.id)}" placeholder="Comment as Mikael…"><button class="primary" data-mg-comment-send="${esc(p.id)}">Send</button></div></article>`;
   }).join("");
+  mgHydrateMedia(shown);
   feed.querySelectorAll("[data-mg-react]").forEach(b=>b.onclick=async()=>{b.disabled=true;try{await mgPush({kind:"react",postId:b.dataset.post,reaction:b.dataset.mgReact});$("mgPostResult").textContent="✅ Reaction queued.";setTimeout(loadMg,1200)}catch(e){$("mgPostResult").textContent=e.message}finally{b.disabled=false}});
   feed.querySelectorAll("[data-mg-comment-send]").forEach(b=>b.onclick=async()=>{const input=feed.querySelector(`[data-mg-comment-input="${CSS.escape(b.dataset.mgCommentSend)}"]`),txt=input?.value.trim();if(!txt)return;b.disabled=true;try{await mgPush({kind:"comment",postId:b.dataset.mgCommentSend,text:txt});input.value="";$("mgPostResult").textContent="✅ Comment queued.";setTimeout(loadMg,1200)}catch(e){$("mgPostResult").textContent=e.message}finally{b.disabled=false}});
 }

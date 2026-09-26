@@ -1,0 +1,14 @@
+MICKYHQ MEDIA VIEW FIX
+
+Upload/replace in the MickyHQ repo:
+- mikael-hq.js
+- mikael-hq.html
+- mikael-hq.css
+
+This version:
+- displays actual synced Lizzy photos
+- plays synced Lizzy videos up to 16 MB
+- shows a real video frame + duration for larger videos
+- lazy-loads media only as posts approach the screen
+- retries media that was not ready on the first refresh
+- keeps the previously fixed HQ posting / comments / reactions / live feed sync
