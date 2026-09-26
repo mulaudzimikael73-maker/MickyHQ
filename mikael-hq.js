@@ -3,7 +3,7 @@ const api=async(action,body={})=>{const r=await fetch(W+"?action="+encodeURIComp
 window.MikaelHQApi=(action,body={})=>api(action,body);
 function show(v){document.querySelectorAll(".view").forEach(x=>x.classList.add("hidden"));$(v).classList.remove("hidden");$("viewTitle").textContent=v==="letters"?"Letters from Lizzy":v==="annoy"?"😈 Annoy Lizzy":v==="mood"?"💗 My Mood":v==="lessons"?"🧠 Lizzy Lessons":v==="mizzygram"?"📸 MizzyGram HQ":v==="world"?"📈 Market & Entertainment":"Mikael × Lizzy Chess";if(v==="letters")loadLetters();else if(v==="annoy")loadAnnoy();else if(v==="mood")loadMood();else if(v==="lessons")loadLessons();else if(v==="world")window.MikaelWorldHQ?.load();else if(v!=="mizzygram")loadChess()}
 document.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>{document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));b.classList.add("active");show(b.dataset.view)});document.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>show(b.dataset.go));
-$("loginBtn").onclick=async()=>{key=$("hqKey").value.trim();if(!key)return;$("loginStatus").textContent="Checking…";try{await api("hq_letters");$("login").classList.add("hidden");$("app").classList.remove("hidden");loadLetters();loadChess()}catch(e){$("loginStatus").textContent=e.message;key=""}};$("hqKey").onkeydown=e=>{if(e.key==="Enter")$("loginBtn").click()};$("logoutBtn").onclick=()=>{key="";$("app").classList.add("hidden");$("login").classList.remove("hidden");$("hqKey").value=""};
+$("loginBtn").onclick=async()=>{key=$("hqKey").value.trim();if(!key)return;$("loginStatus").textContent="Checking…";try{await api("hq_letters");$("login").classList.add("hidden");$("app").classList.remove("hidden");loadLetters();loadChess()}catch(e){$("loginStatus").textContent=e.message;key=""}};$("hqKey").onkeydown=e=>{if(e.key==="Enter")$("loginBtn").click()};$("logoutBtn").onclick=()=>{mgReceipts=[];sessionStorage.removeItem(MG_RECEIPTS_KEY);sessionStorage.removeItem(MG_RETRY_KEY);key="";$("app").classList.add("hidden");$("login").classList.remove("hidden");$("hqKey").value=""};
 async function loadLetters(){try{const d=await api("hq_letters");$("lettersList").innerHTML=d.letters?.length?d.letters.slice().reverse().map(l=>`<article class="letter ${l.status==="unread"?"unread":""}"><h3>💌 ${esc(l.subject||"A letter from Lizzy")}</h3><div class="meta">${esc(l.from||"Lizzy")} · ${new Date(l.createdAt).toLocaleString()}</div><div class="letter-body">${esc(l.text)}</div>${l.reply?`<div class="reply"><b>🖤 Your reply</b><br>${esc(l.reply)}</div>`:`<div class="replyBox"><textarea data-reply="${esc(l.id)}" placeholder="Reply to Lizzy…"></textarea><button class="primary" data-reply-btn="${esc(l.id)}">Send Reply ❤️</button></div>`}</article>`).join(""):`<div class="card empty">No letters yet. When Lizzy writes, her letter will appear here.</div>`;document.querySelectorAll("[data-reply-btn]").forEach(b=>b.onclick=()=>reply(b.dataset.reply));}catch(e){$("lettersList").innerHTML=`<div class="card err">${esc(e.message)}</div>`}}
 async function reply(id){const t=document.querySelector(`[data-reply="${CSS.escape(id)}"]`);if(!t?.value.trim())return;try{await api("reply_letter",{id,reply:t.value.trim()});loadLetters()}catch(e){alert(e.message)}}$("refreshLetters").onclick=loadLetters;$("clearLetters").onclick=async()=>{if(!confirm("Clear ALL letters AND Lizzy's replies inbox? This can't be undone."))return;try{await api("clear_letters");await api("clear_messages");loadLetters()}catch(e){alert(e.message)}};
 const glyph={p:"♟",r:"♜",n:"♞",b:"♝",q:"♛",k:"♚",P:"♙",R:"♖",N:"♘",B:"♗",Q:"♕",K:"♔"};function render(){const b=$("chessBoard");b.innerHTML="";if(!game)return;const bd=game.board();for(let r=0;r<8;r++)for(let c=0;c<8;c++){const sq=String.fromCharCode(97+c)+(8-r),p=bd[r][c],x=document.createElement("button");x.className="sq "+((r+c)%2?"dark":"light");if(selected===sq)x.classList.add("selected");if(selected)try{if(game.moves({square:selected,verbose:true}).some(m=>m.to===sq))x.classList.add("legal")}catch{}x.textContent=p?(p.color==="w"?glyph[p.type.toUpperCase()]:glyph[p.type]):"";x.onclick=()=>move(sq);b.appendChild(x)}$("chessTurn").textContent=game.turn()==="b"?"🖤 Your turn — choose a black piece":"🌸 Lizzy's turn — waiting for her move";$("moveHistory").textContent=game.pgn()||"No moves yet."}
@@ -168,18 +168,52 @@ function mgHydrateMedia(posts){
     document.querySelectorAll("[data-mg-media-slot]").forEach(slot=>mgMediaObserver.observe(slot));
   }else document.querySelectorAll("[data-mg-media-slot]").forEach(loadSlot);
 }
-const mgPending=new Map();
-function mgShowPending(postId){
-  const article=$("mgFeed").querySelector(`[data-mg-post="${CSS.escape(postId)}"]`);if(!article)return;
-  let status=article.querySelector("[data-mg-pending]");if(!status){status=document.createElement("div");status.dataset.mgPending="";article.appendChild(status)}
-  status.innerHTML=mgPendingStatus((mgSnap?.posts||[]).find(p=>p.id===postId)||{id:postId});
+function mgSocialVersion(c){return `${c.createdAt||""}:${c.id||""}`}
+function mgMergeSocial(snapshot,commands){
+  const out=JSON.parse(JSON.stringify(snapshot||{posts:[]}));out.posts=out.posts||[];
+  const byId=new Map(out.posts.map(p=>[p.id,p]));
+  for(const c of [...commands].sort((a,b)=>mgSocialVersion(a).localeCompare(mgSocialVersion(b)))){
+    const p=byId.get(c.postId);if(!p)continue;
+    if(c.kind==="react"||c.kind==="like"){
+      const version=mgSocialVersion(c);if(p.hqReactionVersion&&p.hqReactionVersion>=version)continue;
+      p.rx=p.rx||{};if(p.mine)p.rx[p.mine]=Math.max(0,Number(p.rx[p.mine]||0)-1);
+      p.mine=c.reaction;p.hqReactionVersion=version;
+      if(c.reaction)p.rx[c.reaction]=Number(p.rx[c.reaction]||0)+1;
+      for(const k of Object.keys(p.rx))if(!p.rx[k])delete p.rx[k];
+    }else if(c.kind==="comment"||c.kind==="reply"){
+      p.comments=p.comments||[];
+      const existing=p.comments.find(n=>n.id===c.id);if(existing)existing.text=c.text;else p.comments.push({id:c.id,userId:"mikael",text:c.text,parentId:c.parentId||null,createdAt:Date.parse(c.createdAt)||0});
+    }
+  }
+  return out;
 }
-function mgPendingStatus(p){
-  const pending=mgPending.get(p.id);if(!pending)return "";
-  if(pending.reaction&&p.mine===pending.reaction)delete pending.reaction;
-  pending.comments=(pending.comments||[]).filter(text=>!(p.comments||[]).some(c=>c.userId==="mikael"&&c.text===text.slice(0,100)));
-  if(!pending.reaction&&!pending.comments.length){mgPending.delete(p.id);return ""}
-  return '<div class="mgRx" role="status">⏳ Waiting for Lizzy’s MizzyGram to sync'+(pending.reaction?' · reaction queued':'')+pending.comments.map(t=>' · '+esc(t)).join('')+'</div>';
+const MG_RECEIPTS_KEY="mickyhq-social-receipts-v2";
+let mgSaving=false;
+let mgReceipts=[];try{mgReceipts=JSON.parse(sessionStorage.getItem(MG_RECEIPTS_KEY)||"[]")}catch{}
+const MG_RETRY_KEY="mickyhq-social-retries-v2";
+async function mgSaveInteraction(command){
+  let retries={};try{retries=JSON.parse(sessionStorage.getItem(MG_RETRY_KEY)||"{}")}catch{}
+  const {requestId:ignored,...payload}=command,signature=JSON.stringify(payload);
+  const requestId=retries[signature]||command.requestId||crypto.randomUUID();retries[signature]=requestId;
+  try{sessionStorage.setItem(MG_RETRY_KEY,JSON.stringify(retries))}catch{}
+  const d=await mgPush({...payload,requestId});
+  if(!d.saved||!d.command)throw new Error("Update the Cloudflare Worker to enable server-saved likes and comments.");
+  // Retain the confirmed receipt before removing the retry ID.
+  mgRemember(d.command);delete retries[signature];try{sessionStorage.setItem(MG_RETRY_KEY,JSON.stringify(retries))}catch{}
+  return d;
+}
+function mgLock(value){mgSaving=value;$("mgFeed").querySelectorAll("button,input").forEach(e=>e.disabled=value)}
+function mgMayRefresh(){const feed=$("mgFeed");return !mgSaving&&!(feed&&(feed.contains(document.activeElement)||[...feed.querySelectorAll("[data-mg-comment-input]")].some(i=>i.value.trim())||feed.querySelector("button:disabled")))}
+function mgRemember(command){
+  mgReceipts=mgReceipts.filter(c=>c.id!==command.id&&!(c.postId===command.postId&&c.kind==="react"&&command.kind==="react"));mgReceipts.push(command);
+  try{sessionStorage.setItem(MG_RECEIPTS_KEY,JSON.stringify(mgReceipts))}catch{}
+  mgSnap=mgMergeSocial(mgSnap,mgReceipts);
+}
+function mgRenderKeepingDrafts(){
+  const drafts=new Map([...$("mgFeed").querySelectorAll("[data-mg-comment-input]")].map(i=>[i.dataset.mgCommentInput,i.value]));
+  const active=document.activeElement,focused=active?.dataset?.mgCommentInput,position=active?.selectionStart;
+  mgRenderFeed();
+  for(const input of $("mgFeed").querySelectorAll("[data-mg-comment-input]")){input.value=drafts.get(input.dataset.mgCommentInput)||"";if(input.dataset.mgCommentInput===focused){input.focus();input.setSelectionRange(position,position)}}
 }
 function mgRenderFeed(){
   const feed=$("mgFeed"),posts=mgSnap?.posts||[];
@@ -189,20 +223,30 @@ function mgRenderFeed(){
     const rx=Object.entries(p.rx||{}).map(([k,n])=>`${(MG_REACTS.find(x=>x[0]===k)||[0,"❤️"])[1]} ${n}`).join(" · ")||"No reactions yet";
     const comments=(p.comments||[]).slice(-4).map(c=>`<div class="mgC ${c.parentId?"reply":""}"><span><b>${esc(mgName(c.userId))}</b> ${esc(c.text)}</span></div>`).join("");
     const media=`<div data-mg-media-slot="${esc(p.id)}">${mgMediaMarkup(p,mgMediaCache.get(p.id)||null)}</div>`;
-    return `<article class="mgPost" data-mg-post="${esc(p.id)}"><div class="mgPH"><span class="mgAva">${p.userId==="lizzy"?"🌸":p.userId==="mikael"?"🖤":"✨"}</span><b>${esc(mgName(p.userId))}</b>${p.mood?`<span class="mgMood">${esc(p.mood)}</span>`:""}<time>${mgAgo(p.createdAt)}</time></div>${media}<div class="mgIcons"><button type="button" aria-label="Like post" data-mg-react="love" data-post="${esc(p.id)}">${p.mine==="love"?"❤️":"♡"}</button><button type="button" aria-label="Write a comment" data-mg-focus="${esc(p.id)}">◯</button><span class="r">${p.audience==="lizzy"?"💗":"🌍"}</span></div><div class="mgRx">${esc(rx)}</div>${p.caption?`<div class="mgCap"><b>${esc(mgName(p.userId))}</b> ${esc(p.caption)}</div>`:""}${comments}${mgPendingStatus(p)}<div class="mgBar">${MG_REACTS.slice(0,5).map(([id,e])=>`<button class="mgLike ${p.mine===id?"on":""}" data-mg-react="${id}" data-post="${esc(p.id)}">${e}</button>`).join("")}</div><div class="mgCmt"><input data-mg-comment-input="${esc(p.id)}" maxlength="300" placeholder="Comment as Mikael…"><button class="primary" data-mg-comment-send="${esc(p.id)}">Send</button></div></article>`;
+    return `<article class="mgPost" data-mg-post="${esc(p.id)}"><div class="mgPH"><span class="mgAva">${p.userId==="lizzy"?"🌸":p.userId==="mikael"?"🖤":"✨"}</span><b>${esc(mgName(p.userId))}</b>${p.mood?`<span class="mgMood">${esc(p.mood)}</span>`:""}<time>${mgAgo(p.createdAt)}</time></div>${media}<div class="mgIcons"><button type="button" aria-label="Like post" data-mg-react="love" data-post="${esc(p.id)}">${p.mine==="love"?"❤️":"♡"}</button><button type="button" aria-label="Write a comment" data-mg-focus="${esc(p.id)}">◯</button><span class="r">${p.audience==="lizzy"?"💗":"🌍"}</span></div><div class="mgRx">${esc(rx)}</div>${p.caption?`<div class="mgCap"><b>${esc(mgName(p.userId))}</b> ${esc(p.caption)}</div>`:""}${comments}<div class="mgBar">${MG_REACTS.slice(0,5).map(([id,e])=>`<button class="mgLike ${p.mine===id?"on":""}" data-mg-react="${id}" data-post="${esc(p.id)}">${e}</button>`).join("")}</div><div class="mgCmt"><input data-mg-comment-input="${esc(p.id)}" maxlength="300" placeholder="Comment as Mikael…"><button class="primary" data-mg-comment-send="${esc(p.id)}">Send</button></div></article>`;
   }).join("");
   mgHydrateMedia(shown);
   feed.querySelectorAll("[data-mg-focus]").forEach(b=>b.onclick=()=>feed.querySelector(`[data-mg-comment-input="${CSS.escape(b.dataset.mgFocus)}"]`)?.focus());
   feed.querySelectorAll("[data-mg-react]").forEach(b=>b.onclick=async()=>{
-    const postId=b.dataset.post;const buttons=feed.querySelectorAll(`[data-mg-react][data-post="${CSS.escape(postId)}"]`);buttons.forEach(x=>x.disabled=true);
-    try{await mgPush({kind:"react",postId,reaction:b.dataset.mgReact});const pending=mgPending.get(postId)||{comments:[]};pending.reaction=b.dataset.mgReact;mgPending.set(postId,pending);mgShowPending(postId);b.classList.add("on");$("mgPostResult").textContent="⏳ Reaction queued. Open Lizzy’s MizzyGram on the device with this post to sync.";}
-    catch(e){$("mgPostResult").textContent=e.message}finally{buttons.forEach(x=>x.disabled=false)}
+    if(mgSaving)return;mgLock(true);
+    const postId=b.dataset.post,buttons=feed.querySelectorAll(`[data-mg-react][data-post="${CSS.escape(postId)}"]`);buttons.forEach(x=>x.disabled=true);
+    try{
+      const requestId=b.dataset.requestId||(b.dataset.requestId=crypto.randomUUID());
+      const d=await mgSaveInteraction({kind:"react",postId,reaction:b.dataset.mgReact,requestId});
+      if(!d.saved||!d.command)throw new Error("Update the Cloudflare Worker to enable server-saved likes and comments.");
+      delete b.dataset.requestId;mgRemember(d.command);mgRenderKeepingDrafts();$("mgPostResult").textContent="✅ Reaction saved.";
+    }catch(e){$("mgPostResult").textContent=e.message}finally{mgLock(false);buttons.forEach(x=>x.disabled=false)}
   });
   feed.querySelectorAll("[data-mg-comment-send]").forEach(b=>b.onclick=async()=>{
     const postId=b.dataset.mgCommentSend,input=feed.querySelector(`[data-mg-comment-input="${CSS.escape(postId)}"]`),txt=input?.value.trim();if(!txt)return;
+    if(mgSaving)return;mgLock(true);
     b.disabled=true;input.disabled=true;
-    try{await mgPush({kind:"comment",postId,text:txt});const pending=mgPending.get(postId)||{comments:[]};pending.comments.push(txt);mgPending.set(postId,pending);mgShowPending(postId);input.value="";$("mgPostResult").textContent="⏳ Comment queued. Open Lizzy’s MizzyGram on the device with this post to sync.";}
-    catch(e){$("mgPostResult").textContent=e.message}finally{b.disabled=false;input.disabled=false}
+    try{
+      if(b.dataset.requestText!==txt){b.dataset.requestId=crypto.randomUUID();b.dataset.requestText=txt}
+      const d=await mgSaveInteraction({kind:"comment",postId,text:txt,requestId:b.dataset.requestId});
+      if(!d.saved||!d.command)throw new Error("Update the Cloudflare Worker to enable server-saved likes and comments.");
+      delete b.dataset.requestId;delete b.dataset.requestText;mgRemember(d.command);input.value="";mgRenderKeepingDrafts();$("mgPostResult").textContent="✅ Comment posted.";
+    }catch(e){$("mgPostResult").textContent=e.message}finally{mgLock(false);b.disabled=false;input.disabled=false}
   });
   feed.querySelectorAll("[data-mg-comment-input]").forEach(input=>input.onkeydown=e=>{if(e.key==="Enter"&&!e.isComposing){e.preventDefault();input.parentElement.querySelector("[data-mg-comment-send]")?.click()}});
 
@@ -210,10 +254,10 @@ function mgRenderFeed(){
 async function loadMg(){
   const feed=$("mgFeed");
   // Polling must not replace a focused editor, unsent draft, or in-flight action.
-  if(feed&&(feed.contains(document.activeElement)||[...feed.querySelectorAll("[data-mg-comment-input]")].some(i=>i.value.trim())||feed.querySelector("button:disabled")))return;
+  if(!mgMayRefresh())return;
   const live=$("mgLive");
   try{
-    const d=await api("mg_snapshot_get");mgSnap=d.snapshot||{posts:[]};
+    const d=await api("mg_snapshot_get");if(!mgMayRefresh())return;mgSnap=mgMergeSocial(d.snapshot||{posts:[]},mgReceipts);
     if(live){live.classList.add("on");live.textContent=mgSnap.at?`● synced ${mgAgo(mgSnap.at)} ago`:"● connected"}
     mgRenderFeed();
   }catch(e){if(live){live.classList.remove("on");live.textContent="○ not synced"}$("mgFeed").innerHTML=`<div class="mgEmpty">No posts synced yet.<br>${esc(e.message)}<br><br>Open MizzyGram on Lizzy’s site, then press ↻.</div>`}
