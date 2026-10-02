@@ -17,9 +17,9 @@ async function api(action,payload={}){
  const body={action,role,run:state?.run,...payload,requestId:payload.requestId||rid()};
  if(role==="hq"){body.hqKey=getKey();if(!body.hqKey)throw new Error("Unlock Micky HQ to connect your security controls.")}
  let r;try{r=await fetch(WORKER,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body),cache:"no-store",signal:AbortSignal.timeout(12000)})}catch{throw new Error("Connection lost. Your round is saved; reconnect to continue.")}
- const d=await r.json().catch(()=>({success:false,error:"The updated games Worker is not active yet. Install the supplied Cloudflare package."}));
+ const d=await r.json().catch(()=>({success:false,error:"The updated games Worker is not active yet. Replace cloudflare-worker.js and reconnect."}));
  if(!r.ok||d.success===false){if(d.state)accept(d.state);throw new Error(d.error||`Request failed (${r.status})`)}
- if(action!=="bank_heist_lizzy_claim"&&d.version!=="catch-me-if-you-can-v3")throw new Error("The updated games Worker is not active yet. Install the supplied Cloudflare package.");
+ if(action!=="bank_heist_lizzy_claim"&&d.version!=="catch-me-if-you-can-v3")throw new Error("The updated games Worker is not active yet. Replace cloudflare-worker.js and reconnect.");
  return d;
 }
 function connectionError(t){$("connectionStatus").textContent=t;$("connectionStatus").classList.remove("hidden")}
@@ -133,5 +133,5 @@ $("newRoundBtn").onclick=()=>{if(confirm("Start a fresh Catch Me If You Can roun
 $("showResultBtn").onclick=()=>{lastEndRun=null;renderEnd();applyPayout()};
 qa("[data-close-dialog]").forEach(b=>b.onclick=()=>b.closest("dialog").close());
 $("toggleComms").onclick=()=>$("app").classList.toggle("commsClosed");
-window.addEventListener("resize",()=>{if(role==="hq"&&state)renderMap()});document.addEventListener("visibilitychange",()=>{if(!document.hidden)refresh()});setInterval(refresh,900);refresh();
+window.addEventListener("resize",()=>{if(role==="hq"&&state)renderMap()});document.addEventListener("visibilitychange",()=>{if(!document.hidden)refresh()});async function pollLoop(){await refresh();setTimeout(pollLoop,document.hidden?10000:(state?.phase==="active"?2500:5000))}refresh();setTimeout(pollLoop,2500);
 })();
