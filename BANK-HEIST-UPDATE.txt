@@ -1,0 +1,37 @@
+BANK OF MICKY — BOTH GAMES / PRODUCTION V3
+
+This folder is the complete updated static website. Preserve the existing hosting root and copy its contents into that same root.
+
+Cloudflare is a separate deployment. Use the accompanying Bank-of-Micky-Both-Games-Cloudflare-V3-Locked.zip and its START-HERE.txt first. It contains the merged production Worker plus the required BANK_HEIST Durable Object setup. Keep the existing LIZZY_CLAIMS namespace and HQ/Telegram secrets. If BANK_HEIST is already installed, reuse it. The newer /v3/ connection lock is included, blocking shared-state requests from older root clients.
+
+Lizzy: V3 → Our World → Bank of Micky Heist (beside MizzyGram).
+Mikael: unlock Micky HQ → Bank Heist.
+Both: stay on a voice call. Five stages, fifteen controls, then a synchronized release. Plan roughly 40 minutes; there is no overall failure timer. Escape time depends on the players.
+
+Progress resumes automatically. Only Mikael can start a new run. New runs generate fresh, matching clue sets. The uploaded escape photo appears when both players finish.
+
+The old cloudflare-worker*.js copies are omitted from these static website files. They are superseded by the separate Cloudflare package. Never upload the Cloudflare package into either public website root. No answer sheet is included in this production release.
+
+CATCH ME IF YOU CAN
+
+Both full games are included. In Our World, Catch Me If You Can sits immediately
+after Bank of Micky Heist, beside MizzyGram. In Micky HQ, choose its own new tab.
+
+This is the 15-minute competitive camera/guard game: Lizzy steals up to MB20,000
+and keeps 5% if she escapes; Mikael uses security power, cameras, guards, door
+locks, zone scans and protected exits. Three interceptions or the timer expiring
+ends the hunt. Loadouts, bluffs, chat, bribes and both escape routes are included.
+
+The games have separate server progress. A reset in one does not reset the other.
+Competitive vault digits also change per round. All original room backgrounds,
+player portraits and bank branding are included in catch-assets/. The cooperative
+escape photo remains in heist-assets/. Keep BOTH asset folders when uploading.
+
+Deploy the accompanying COMBINED Cloudflare package first, then update both sites.
+The previous escape-room-only Worker cannot run the new competitive game. Reuse
+BANK_HEIST if already installed; this update needs no second binding/migration.
+See the backend START-HERE.txt and BOTH-GAMES-QA-REPORT.txt for details.
+
+These are complete site folders, not patches. No live deployment was performed.
+
+The supplied V3/HQ lock fix is included, with additional checks for mixed action/type requests and shared bid aliases. See V3-LOCK-VERIFICATION.txt.

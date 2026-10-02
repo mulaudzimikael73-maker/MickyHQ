@@ -1,0 +1,91 @@
+V3 + MICKY HQ — CONNECTION LOCK / BOTH COMPLETE GAMES
+Verified locally: 1 October 2026
+
+SUPPLIED FIX MERGED
+
+The uploaded V3-HQ-CLOUDFLARE-LOCK-ALL (1).zip was compared against the latest
+complete V3, MickyHQ and combined Cloudflare packages. Its Worker matches the
+V3 lock baseline already used for the game integration. Its client connection
+changes are preserved. The newer game launchers, HQ role defaults and Catch Me
+If You Can controls are retained; older patch files do not replace those changes.
+
+Both complete websites use the existing production Worker's /v3/ connection.
+Shared state on the original root connection is rejected with HTTP 403 before
+reading or writing shared records. The protected features include letters,
+chess, MizzyGram, Internet market/media queues, annoyance controls, deposits,
+messages, moods, thoughts, tokens, shelf claims and both bank games.
+
+TWO ADDITIONAL GAPS FIXED
+
+1. Some handlers use action and others use type. The previous guard checked
+   only the first non-empty field. A generic action could mask a protected type.
+   Both fields are now checked independently before shared state is reached.
+2. Bid/offer aliases also create shared claims. bid, offer, offer_created,
+   new_offer and secret_shelf_offer are now covered by the same V3 restriction.
+
+Protected query actions are checked before routing, including repeated action
+parameters. Invalid JSON, null and array request bodies return a clear HTTP 400.
+
+LOCK SCOPE
+
+This preserves the connection-path lock in your supplied fix: old builds using
+the original Worker connection cannot sync with proper HQ. /v3/ and /v3 remain
+the current channel. This does not authenticate website domains; a site copied
+and deliberately changed to use /v3/ would share that channel. HQ operations
+retain their existing key checks. Notification-only root traffic and the
+existing Telegram webhook remain available, as in the supplied patch.
+
+No new HQ key, secret, KV namespace or game binding is required. Existing data,
+Durable Object migration history and the games' separate progress are preserved.
+
+VERIFICATION RESULTS
+
+Passed: 1,277 rejection cases across old paths, protected body action/type
+combinations, query actions and state flags. Rejected requests perform no KV
+reads/writes, game storage writes or notification sends.
+
+Passed: V3 authentication and previous-response regression; real V3 round trips
+for letters, MizzyGram comments/media, world queues, tokens and bid aliases.
+Old clients cannot overwrite the seeded V3 records. Root notification-only
+compatibility, health/OPTIONS and invalid JSON handling also pass.
+
+Passed again against the final Worker: 61 independently solved cooperative
+runs, cooperative timing/retry/privacy tests, competitive complete rounds,
+cameras/guards/loadouts/exits, authentication, concurrent/stale requests,
+durable payout receipts, restart and separation of the two games.
+
+Passed again in Chromium with local Cloudflare workerd/SQLite: full two-player
+escape-room and competitive playthroughs through the integrated launchers,
+HQ unlock/switch/lock, private clue screens, successful escape photo, reconnect,
+mobile layout, all competitive images and reward collection across reloads,
+tabs and separate simulated devices. No page errors or missing local assets
+were reported in those flows. All external message delivery was stubbed.
+
+Passed: Cloudflare Wrangler build dry-run. Both BANK_HEIST and LIZZY_CLAIMS
+bindings are present. The fake local-check configuration is not shipped.
+
+The package builder runs the final packaged backend's npm run test:games,
+including qa/test-lock.mjs. It also verifies production connection URLs, game
+assets, exclusion of server code from the static sites, ZIP integrity and
+byte-for-byte agreement between each ZIP and its release folder.
+
+The wider game verification is recorded in BOTH-GAMES-QA-REPORT.txt in each
+website, and QA-REPORT.txt in the Cloudflare package.
+
+INSTALLATION
+
+These are three complete replacement packages:
+- YourUltimateFanV3-Both-Games-Locked.zip
+- MickyHQ-Both-Games-V3-Locked.zip
+- Bank-of-Micky-Both-Games-Cloudflare-V3-Locked.zip
+
+Deploy the Cloudflare package to the existing Worker first, following its
+START-HERE.txt. Then upload the CONTENTS of the V3 and HQ folders to their
+existing matching hosting roots. Keep heist-assets/ and catch-assets/ intact.
+Hard-refresh both sites. Keep backend files outside the public website roots.
+
+After deployment, open proper HQ and V3 on your two actual devices, confirm
+MizzyGram sync and both game launchers, and confirm an old root-based version
+cannot read/write the protected shared features. This task performed local
+verification and packaging; it did not deploy to the live Cloudflare account
+or websites or verify their real bindings and secrets.

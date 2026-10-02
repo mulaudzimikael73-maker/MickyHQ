@@ -1,0 +1,60 @@
+BANK OF MICKY V3 — VALIDATION REPORT
+30 September 2026
+
+PASS: 61 complete backend runs, solved from the two role-visible clue sets.
+The solver does not read the hidden answers or private room storage.
+All generated staff/box identities and pressure solutions were unique; every
+laser route was contiguous, with eight distinct tiles from entrance to exit.
+
+PASS: role authentication; separate private clue responses; gated lever,
+receipts, recovery tag and pressure strip; wrong answers; stale run/step/attempt
+rejection; duplicate and concurrent submissions; idempotent final presses;
+exactly 15,000 ms succeeds and 15,001 ms fails; retry after a missed window or
+one disconnected player; completion retained after coordinator recreation;
+new-run revision ordering; read-only polling after room initialization.
+
+PASS: V3-channel Worker regression for letters, chess, moods/annoy state, MizzyGram
+queue/snapshot/media retrieval and world queue/snapshot retrieval. Heist actions
+did not alter any existing LIZZY_CLAIMS records in the test environment. Other
+legacy routes retain their original source code; they were not all exercised.
+The newer V3-only routing patch is included: root shared-state reads and writes
+are rejected with HTTP 403, and the same requests use /v3/ in the updated sites.
+Cache versions were refreshed for the affected browser scripts.
+
+PASS: Chromium 153 browser playthrough against the actual Cloudflare workerd
+runtime via Miniflare 4.20260730.0 with SQLite-backed BankHeistRoom storage:
+- Our World launcher immediately after MizzyGram
+- Micky HQ authentication, heist view, leave/reopen and lock/unlock
+- All 15 puzzle controls and every clue dialog on both roles
+- Interactive mirrored route, cargo placement and four vault wheels
+- Wrong-answer recovery, page reload and saved progress
+- Simultaneous final release, completion retained, uploaded escape photo loaded
+- Shared restart, fresh clues, connection failure/recovery
+- Desktop 1440 px and phone 390 px layouts; no horizontal document overflow
+- No uncaught JavaScript errors or missing local game assets
+
+PASS: visually inspected desktop HQ, mobile clue gallery and success layout.
+A stale waiting message on completion was fixed. The escape photo is the main
+completion image. Symbols and documents are rendered from authoritative clue
+data, rather than hardcoded test answers in the browser.
+
+PASS: changed-page asset paths and unique DOM IDs; JavaScript syntax checks;
+Wrangler 4.144.0 deployment dry run with BANK_HEIST and LIZZY_CLAIMS bindings.
+The dry run used placeholder account/namespace IDs and made no live deployment.
+
+Each website archive contains the full original site with targeted launcher/HQ
+changes plus the heist client and 15 image assets. Superseded cloudflare-worker
+files are omitted from static roots and replaced by this separate backend
+package. Source comparison verified that the newer lock patch changes browser
+code only by replacing the Worker URL with /v3/. Those routing changes are
+merged alongside the heist changes, with affected HTML cache versions updated. Production answer sheets and test Worker settings are absent.
+
+LIMITS
+The live Cloudflare account, bindings, secrets and remote hosting were not
+accessible for deployment. Complete START-HERE.txt before playing on the live
+sites. Cross-device latency and the approximately 40-minute human play duration
+still need a real two-person session; 40 minutes is a pacing estimate.
+
+REPEAT THE BACKEND TESTS
+Run npm test in this package. Tests use isolated in-memory transactional storage
+and fake credentials; they do not connect to or modify the live Worker.

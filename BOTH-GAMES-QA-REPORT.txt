@@ -1,0 +1,69 @@
+BANK OF MICKY / V3 — COMBINED RELEASE CHECKS
+Date: 1 October 2026
+
+INCLUDED
+- Complete YourUltimateFanV3 and MickyHQ website folders.
+- Bank of Micky Heist: five cooperative stages, fifteen controls, approximately
+  40 minutes, separate private clues, fresh codes and the supplied escape photo.
+- Catch Me If You Can: the supplied camera/guard v5 game integrated into V3,
+  seven rooms, three-item loadouts, 15-minute hunt, both exits, maximum MB20,000
+  carried and 5% payout, up to MB1,000, into Lizzy's existing V3 wallet.
+- Our World links: MizzyGram -> Bank of Micky Heist -> Catch Me If You Can.
+- Separate HQ tabs and separate transactional server progress for the games.
+- Existing production /v3/ connection lock retained.
+
+BACKEND CHECKS — PASSED
+- 61 complete cooperative runs solved independently from the role-visible clues.
+- Unique, solvable clue combinations, routes, pressure weights and code fragments.
+- HQ authentication, private role responses and staged clue reveals.
+- Concurrent, repeated and stale puzzle requests; saved progress after restart.
+- Final cooperative release at the 15-second boundary, failed attempts and retry.
+- Competitive complete escape with discovered vault digits and maximum payout.
+- Both competitive escape routes; all seven rooms and all loot interactions.
+- Live, clear, looped and disrupted camera snapshots; persistent last-seen marker.
+- Guard approach warnings, timed hiding, door jammer, delayed polling, confiscation
+  and third-interception capture. Scheduled events resolve at their event times.
+- Locks, zone scans, protected exits, equipment, chat, bribes and head starts.
+- Exact timeout prevents late loot; failed HQ actions do not spend security power.
+- Duplicate/concurrent requests, stale rounds and coordinator restart.
+- One server payout receipt per escape; a second device cannot collect it again.
+- Payout receipts survive a new round. Ordinary state reads do not write to KV.
+- The two games keep separate state; existing letters/chess/mood/queue response
+  regression checks and existing KV records pass unchanged.
+
+BROWSER CHECKS — PASSED
+Environment: Chromium 153, real Cloudflare workerd via Miniflare, SQLite objects.
+These checks used local isolated fixtures; no messages were sent to real people.
+- Complete cooperative playthrough from both integrated launchers, all fifteen
+  controls, every clue dialog, a rejected answer, reload, final release and photo.
+- Complete competitive theft/escape using real UI clicks and real action timers.
+- Live camera portrait, discovered clues, guard dispatch, chat and a negotiated
+  head start; correct end result on both screens.
+- HQ unlock, switch between both games, leave/reopen, lock and re-authenticate.
+- Refresh and connection-loss recovery without losing server progress.
+- Payout credits exactly once on reload and with two tabs. Separate browser
+  processes confirm a second device receives no duplicate credit.
+- A fresh second round re-enables chat, camera selectors and HQ controls.
+- Desktop and 390px mobile layouts checked; ten competitive images load.
+- Bare HQ game URLs choose the correct HQ role and have valid return links.
+- No JavaScript page errors or missing local assets in the tested browser flows.
+- Matching client scripts/styles, valid game control IDs and asset paths.
+- No test Worker setting, browser-persisted HQ key, fixed test vault answer or
+  server Worker file is present in the new static game client.
+- Wrangler production build dry-run passed with BANK_HEIST and LIZZY_CLAIMS.
+- Final ZIP integrity and packaged backend test entry points checked.
+
+DEPLOYMENT STATUS
+The packages are complete and locally verified. They have NOT been deployed
+to your live Cloudflare account or live websites by this task. Live bindings,
+secrets, hosting paths and communication between your actual two devices must
+be checked after uploading. Follow START-HERE.txt in the Cloudflare package:
+deploy the combined Worker first, then update V3 and HQ, then open both games.
+
+If BANK_HEIST was already installed for the escape room, reuse that binding and
+class. No second binding or migration is needed for the competitive game.
+Otherwise complete the included first-installation configuration/migration.
+
+Game timing is a design target, not a guarantee of human completion time.
+The competitive game has its own 15-minute round; the cooperative room targets
+roughly 40 minutes and has no overall failure timeout.
