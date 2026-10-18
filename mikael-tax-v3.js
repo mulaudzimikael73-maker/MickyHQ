@@ -1,0 +1,11 @@
+/* Main Micky HQ only — first-device Presidential tax panel */
+(()=>{'use strict';const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const api=(action,body={})=>window.MikaelHQApi('v3_tax_'+action,body);
+async function load(){const host=$('taxRecords');if(!host)return;host.textContent='Loading tax records…';try{const r=await api('list');host.innerHTML=(r.taxes||[]).length?r.taxes.map(t=>`<article class="card" style="padding:14px;margin:8px 0"><strong>${esc(t.id)}</strong><p>${esc(t.reason)}</p><div>${t.amount} MB assessed · ${t.appliedAmount||0} MB collected</div><small>Status: ${esc(t.status)}${t.status==='partial'?` · ${t.amount-t.appliedAmount} MB debt`:''}</small><div style="margin-top:8px">${t.status==='pending'?`<button data-tax-cancel="${esc(t.id)}">Cancel</button>`:''} ${['collected','partial'].includes(t.status)?`<button data-tax-refund="${esc(t.id)}">Refund original device</button>`:''}</div></article>`).join(''):'<p>No taxes issued yet.</p>';
+ host.querySelectorAll('[data-tax-cancel]').forEach(b=>b.onclick=async()=>{if(!confirm('Cancel this unclaimed tax?'))return;try{await api('cancel',{id:b.dataset.taxCancel});load()}catch(e){alert(e.message)}});
+ host.querySelectorAll('[data-tax-refund]').forEach(b=>b.onclick=async()=>{if(!confirm('Refund collected MB to the SAME device? Refund applies on that device’s next visit.'))return;try{await api('refund',{id:b.dataset.taxRefund});load()}catch(e){alert(e.message)}});
+ }catch(e){host.textContent='Tax error: '+e.message}}
+$('taxRefreshBtn')?.addEventListener('click',load);
+$('taxIssueBtn')?.addEventListener('click',async()=>{const amount=Number($('taxAmount')?.value),reason=$('taxReason')?.value.trim();if(!Number.isSafeInteger(amount)||amount<=0||!reason){$('taxResult').textContent='Enter a positive whole-number amount and a reason.';return}if(!confirm(`Issue an automatic tax of ${amount} MB?\nReason: ${reason}`))return;try{const r=await api('create',{amount,reason});$('taxResult').textContent='✅ Tax queued: '+r.tax.id+' · First eligible V3 device will receive the deduction.';$('taxReason').value='';load()}catch(e){$('taxResult').textContent='❌ '+e.message}});
+window.MikaelTaxHQ={load};
+})();
