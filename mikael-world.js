@@ -7,6 +7,7 @@ const STOCKS=[
 const MAX_MEDIA=16*1024*1024;
 const FULFILLED_KEY="mikaelhq-ent-fulfilled-v1";
 let snapshot=null,timer=null,lastDeliveryMsg="";
+let showAlreadyUploaded=false;
 const selectedFiles=new Map();
 function loadFulfilled(){try{return new Set(JSON.parse(localStorage.getItem(FULFILLED_KEY)||"[]"))}catch{return new Set()}}
 const fulfilledIds=loadFulfilled();
@@ -57,19 +58,25 @@ function render(){
  if(hold)hold.innerHTML=holdings.length?holdings.map(h=>{const pnl=Number(h.pnl||0);return `<article class="worldHolding"><div><b>${esc(h.ticker)}</b><span>${esc(h.name)}</span></div><div class="worldHoldingNumbers"><strong>${Number(h.shares||0)} share${Number(h.shares||0)===1?'':'s'}</strong><span>Avg ${Number(h.avg||0).toFixed(2).replace(/\.00$/,'')} MB · Now ${Number(h.price||0).toFixed(2).replace(/\.00$/,'')} MB</span><span>Value ${Number(h.value||0).toFixed(2).replace(/\.00$/,'')} MB · <b class="${pnl>=0?'worldGain':'worldLoss'}">${pnl>=0?'+':''}${pnl.toFixed(2).replace(/\.00$/,'')} MB (${Number(h.pnlPct||0).toFixed(1)}%)</b></span></div></article>`}).join(''):'<div class="worldEmpty">Lizzy does not own any shares yet.</div>';
  if(tradeEl)tradeEl.innerHTML=trades.length?trades.map(tr=>`<div class="worldTrade ${tr.side==='buy'?'buy':'sell'}"><div><b>${tr.side==='buy'?'🛒 BOUGHT':'💸 SOLD'} ${Number(tr.qty||0)} ${esc(tr.ticker)}</b><span>${new Date(tr.at||Date.now()).toLocaleString()}</span></div><strong>${Number(tr.total||0).toFixed(2).replace(/\.00$/,'')} MB <small>@ ${Number(tr.unitPrice||0).toFixed(2).replace(/\.00$/,'')} each</small></strong></div>`).join(''):'<div class="worldEmpty">No share purchases or sales recorded yet.</div>';
  const all=snapshot?.purchases||[];
- const ps=all.filter(p=>p.status!=="ready"&&!fulfilledIds.has(p.id));
+ const pending=all.filter(p=>p.status!=="ready"&&!fulfilledIds.has(p.id));
+ const ps=showAlreadyUploaded?all:pending;
+ const completedCount=all.length-pending.length;
  status.textContent=lastDeliveryMsg|| (snapshot?.at?`● Synced ${new Date(snapshot.at).toLocaleString()} · Spendable ${Number(snapshot.cash||0).toFixed(2).replace(/\.00$/,'')} MB`:'○ Waiting for LizzyOS to sync');
- purchases.innerHTML=ps.length?ps.slice().reverse().map(p=>{
+ const restoreToggle=completedCount?`<button type="button" id="worldToggleUploaded" class="primary" style="margin:8px 0 14px 0">${showAlreadyUploaded?'Hide uploaded tickets':`Show ${completedCount} previously uploaded ticket(s) / resend missing video`}</button>`:'';
+ purchases.innerHTML=restoreToggle+(ps.length?ps.slice().reverse().map(p=>{
   const selected=selectedFiles.get(p.id),accept=acceptFor(p),chooser=chooserFor(p);
   return `<article class="worldPurchase">
    <div class="worldPurchaseHead"><div><b>${typeLabel(p)}</b><span>${esc(p.title)} · ${esc(p.tier)} · ${Number(p.price||0)} MB</span></div><em class="${p.status==='ready'?'ready':'waiting'}">${p.status==='ready'?'READY':'WAITING FOR MEDIA'}</em></div>
    <p>Purchased ${new Date(p.boughtAt).toLocaleString()}</p>
    <label class="worldUpload"><input type="file" data-world-media="${esc(p.id)}" accept="${accept}"><span>${selected?'✅ '+esc(selected.name):chooser} <small>${selected?formatBytes(selected.size):'up to 16 MB'}</small></span></label>
    ${selected?`<div class="worldUploadResult"><b>✅ File selected:</b> ${esc(selected.name)} · ${formatBytes(selected.size)}<br><span>Ready to upload.</span></div>`:""}
-   <button class="primary" data-world-deliver="${esc(p.id)}" ${selected?'':'disabled'}>${selected?(p.status==='ready'?'Replace with selected file':'Upload selected file'):'Choose a file first'}</button>
+   <button class="primary" data-world-deliver="${esc(p.id)}" ${selected?'':'disabled'}>${selected?((fulfilledIds.has(p.id)||p.status==='ready')?'Re-send selected file to this ticket':'Upload selected file'):'Choose a file first'}</button>
+   ${(fulfilledIds.has(p.id)||p.status==='ready')?'<small style="display:block;margin:5px 0 9px">Previously uploaded. Re-send only if this ticket is missing on Lizzy\'s site; it will not charge a new ticket.</small>':''}
    <div class="worldUploadResult" data-world-result="${esc(p.id)}"></div>
   </article>`;
- }).join(""):'<div class="worldEmpty">No entertainment purchases yet. Once Lizzy buys a ticket or exclusive song, it will appear here.</div>';
+ }).join(""):'<div class="worldEmpty">No pending entertainment deliveries. Use Show previously uploaded tickets to resend an episode if Lizzy did not receive it.</div>');
+ const uploadedToggle=document.getElementById('worldToggleUploaded');
+ if(uploadedToggle)uploadedToggle.onclick=()=>{showAlreadyUploaded=!showAlreadyUploaded;render()};
  purchases.querySelectorAll('[data-world-media]').forEach(input=>input.onchange=()=>{
   const id=input.dataset.worldMedia,p=(snapshot?.purchases||[]).find(x=>x.id===id),file=input.files?.[0],result=document.querySelector(`[data-world-result="${CSS.escape(id)}"]`);
   if(!file){selectedFiles.delete(id);render();return}
