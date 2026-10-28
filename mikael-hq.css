@@ -224,3 +224,6 @@
  #app>main .board-actions button{width:100%}
 }
 @media(prefers-reduced-motion:reduce){#app>aside,#hqNavScrim{transition:none!important}}
+
+/* Newspaper viewer mirrors live V3; scrolls naturally on mobile. */
+.hqNewsSettings{max-width:100%;overflow:hidden}.hqNewsControls{display:flex;flex-wrap:wrap;gap:8px;margin-top:9px}.hqNewsControls input{flex:1 1 290px;min-width:0;max-width:100%;box-sizing:border-box}.hqNewsControls button{flex:0 1 auto}.hqNewsFrame{display:block;width:100%;height:calc(100dvh - 280px);min-height:550px;border:1px solid rgba(255,255,255,.19);border-radius:16px;background:#151323;box-sizing:border-box;margin-top:14px}@media(max-width:650px){.hqNewsFrame{height:73dvh;min-height:480px}.hqNewsControls button{flex:1 1 auto}}
