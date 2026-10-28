@@ -137,3 +137,90 @@
 }
 @media(max-width:360px){#hqMobileNavToggle span{display:none}}
 @media(prefers-reduced-motion:reduce){#app>aside,#hqNavScrim{transition:none!important}}
+
+
+/* MOBILE HQ ACCESSIBILITY & LAYOUT FIX — 28 OCT 2026
+   The two entry documents are kept in sync; game/API business logic is untouched. */
+#app>aside nav button[hidden],#app>aside .hqMobileNavHint[hidden]{display:none!important}
+.hqMobileNavTools,.hqMobileNavHint{display:none}
+#app>main,.view,.card,.letter,.mgCard,.mgCols,.mgCol,.worldCols,.worldPanel{min-width:0}
+#app>main .view :is(img,video,svg){max-width:100%}
+#app>main .view :is(h1,h2,h3,p,small,blockquote,.letter-body,.reply,.request){overflow-wrap:anywhere}
+#app>main .view :is(button,input,textarea,select){max-width:100%}
+#app>main .view button{touch-action:manipulation}
+#app>main .view :is(input,textarea,select){min-width:0}
+#app>main .view textarea{max-width:100%;resize:vertical}
+#app>main .view :is(table){max-width:100%}
+#app>main .view .section-intro>div{min-width:0}
+#app>main .view .intro-actions{max-width:100%}
+#app>main .view .intro-actions button{white-space:normal}
+#app>main .view .chess-layout>.card{min-width:0}
+#app>main .view .chess-board-wrap{width:100%;max-width:620px}
+#app>main .view .worldPrices>div,#app>main .view .worldPurchaseHead{min-width:0}
+@media (max-width:1024px){
+ #app>aside{position:fixed!important;top:0;left:0;bottom:auto;transform:translateX(-104%);transition:transform .23s ease;width:min(340px,89vw);max-width:89vw;height:100vh;height:100dvh;padding:calc(10px + env(safe-area-inset-top,0px)) 12px calc(12px + env(safe-area-inset-bottom,0px));z-index:211;visibility:hidden;pointer-events:none;overflow:hidden}
+ body.hq-nav-open #app>aside{transform:translateX(0);visibility:visible;pointer-events:auto}
+ #app>aside .brand{padding:5px 4px 12px}
+ #app>aside nav{flex:1 1 auto;min-height:0!important;margin:0 0 4px!important;overflow-y:auto!important;overflow-x:hidden;padding:2px 5px 12px 2px;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch}
+ #app>aside nav button{min-height:46px!important}
+ #app>aside #logoutBtn{margin-top:8px!important;min-height:46px}
+ .hqMobileNavTools{display:block;flex:0 0 auto;margin:0 0 7px;padding:0 3px}
+ .hqMobileNavTools label{display:block;font-size:11px;letter-spacing:.07em;font-weight:800;color:#ead8e3;margin:0 0 6px}
+ #hqNavSearch{display:block;width:100%;max-width:100%;min-height:44px;margin:0;padding:10px 12px;border:1px solid #ffffff35;border-radius:12px;background:#ffffff0c;color:#fff;font-size:16px;outline-offset:2px}
+ #hqNavSearch::placeholder{color:#e2c9d8b3}
+ #hqNavSearch:focus-visible{outline:3px solid #f08ac1}
+ #hqNavCount{font-size:11px;color:#e9c1d8;margin:6px 0 0}
+ #app>aside .hqMobileNavHint{display:block;flex:0 0 auto;text-align:center;color:#f9c7e1;font-size:11px;font-weight:800;margin:0 0 6px;padding:3px}
+ #app>main{margin-left:0!important;width:100%!important;max-width:none!important;overflow-x:visible;padding:10px max(12px,env(safe-area-inset-right,0px)) calc(72px + env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px))}
+ #app>main>header{position:sticky;top:0;z-index:45;display:flex;align-items:center;gap:9px;flex-wrap:wrap;background:#1f1420f5;backdrop-filter:blur(15px);-webkit-backdrop-filter:blur(15px);padding:10px 4px 12px;margin:0 0 17px;border-bottom:1px solid #ffffff24}
+ #app>main>header>*{margin:0}
+ #app>main>header .eyebrow{display:none}
+ #app>main>header h2{flex:1;min-width:0;font-size:clamp(16px,3.7vw,22px);line-height:1.25;overflow-wrap:anywhere}
+ #hqMobileNavToggle{display:inline-flex!important;min-height:46px;align-items:center;gap:6px;flex:0 0 auto;padding:10px 12px;border-radius:12px;background:#f08ac1;color:#28111e;border:0;font-weight:800;cursor:pointer}
+ #hqNavClose{display:inline-flex!important;align-items:center;justify-content:center;min-height:44px;min-width:44px;background:#ffffff20;color:#fff;border:0;border-radius:10px;padding:6px;cursor:pointer}
+ #hqNavScrim{display:block;position:fixed;inset:0;background:#08060ed9;z-index:210;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .23s,visibility .23s}
+ body.hq-nav-open #hqNavScrim{opacity:1;visibility:visible;pointer-events:auto}
+ body.hq-nav-open{overflow:hidden}
+ #app>main .view .chess-layout{grid-template-columns:minmax(0,1fr)}
+ #app>main .view .section-intro{flex-direction:column;align-items:flex-start;gap:8px}
+ #app>main .view .intro-actions{display:flex;flex-wrap:wrap;gap:9px;width:100%}
+ #app>main .view .intro-actions button{flex:1 1 auto;min-height:44px}
+ #app>main .view .worldCols{grid-template-columns:minmax(0,1fr)}
+ #app>main .view .worldRow{grid-template-columns:minmax(0,1fr)}
+ #app>main .view .worldGlobal{grid-template-columns:minmax(0,1fr)}
+ #app>main .view .mgCols{grid-template-columns:minmax(0,1fr)}
+ #app>main .view .heistFrame{display:block;max-width:100%;height:calc(100dvh - 130px);min-height:520px}
+}
+@media(max-width:600px){
+ #app>main .card,#app>main .letter{padding:16px;border-radius:17px}
+ #app>main .mgCard{padding:14px;border-radius:18px}
+ #app>main .mgHero{flex-wrap:wrap;gap:9px}
+ #app>main .mgHero h2{font-size:22px}
+ #app>main .mgHero .mgLive{margin-left:0}
+ #app>main .mgHero #mgRefresh{margin-left:auto}
+ #app>main .mgRow{grid-template-columns:minmax(0,1fr)}
+ #app>main .mgCmt{min-width:0}
+ #app>main .mgCmt input{min-width:0;flex:1 1 auto}
+ #app>main .mgCmt button{flex:0 0 auto}
+ #app>main .mgEvents{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #app>main .board-actions{flex-wrap:wrap}
+ #app>main .board-actions button{min-height:44px}
+ #app>main .annoy-grid{grid-template-columns:repeat(auto-fit,minmax(min(135px,100%),1fr))}
+ #app>main .worldGlobal button{min-height:44px}
+ #app>main .worldPurchaseHead{flex-wrap:wrap}
+ #app>main #taxes input{display:block;width:100%;max-width:100%;padding:12px;border-radius:11px;background:#0003;color:#fff;border:1px solid #ffffff30;margin:8px 0 12px;font-size:16px}
+ #app>main #taxes label{display:block;margin:10px 0 4px}
+ #app>main #taxIssueBtn{min-height:44px}
+ #garden .gmhq-card{padding:13px}
+ #garden .gmhq-grid{grid-template-columns:minmax(0,1fr)}
+ #garden .gmhq-flowers{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:360px){
+ #app>main>header h2{font-size:16px}
+ #hqMobileNavToggle span{display:none}
+ #app>main .mgEvents{grid-template-columns:minmax(0,1fr)}
+ #app>main .mgSeg button{font-size:12px}
+ #app>main .board-actions{flex-direction:column}
+ #app>main .board-actions button{width:100%}
+}
+@media(prefers-reduced-motion:reduce){#app>aside,#hqNavScrim{transition:none!important}}

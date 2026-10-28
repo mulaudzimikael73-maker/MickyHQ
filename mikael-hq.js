@@ -5,10 +5,32 @@ window.MikaelHeistSession=()=>({key:$("app").classList.contains("hidden")?"":key
 function show(v){const catchFrame=$("catchFrame");if(catchFrame){if(v==="catch"){if(!catchFrame.getAttribute("src"))catchFrame.src="bank-heist.html?role=hq";}else catchFrame.removeAttribute("src");}const frame=$("heistFrame");if(frame){if(v==="heist"){if(!frame.getAttribute("src"))frame.src="heist-room.html?role=mikael";}else frame.removeAttribute("src");}document.querySelectorAll(".view").forEach(x=>x.classList.add("hidden"));$(v).classList.remove("hidden");$("viewTitle").textContent=v==="catch"?"🏃 Catch Me If You Can":v==="heist"?"🏦 Bank of Micky Heist":v==="letters"?"Letters from Lizzy":v==="annoy"?"😈 Annoy Lizzy":v==="mood"?"💗 My Mood":v==="lessons"?"🧠 Lizzy Lessons":v==="garden"?"🌷 Garden Studio":v==="taxes"?"🏛️ Presidential Taxes":v==="mizzygram"?"📸 MizzyGram HQ":v==="world"?"📈 Market & Entertainment":"Mikael × Lizzy Chess";if(v==="heist"||v==="catch")return;if(v==="letters")loadLetters();else if(v==="annoy")loadAnnoy();else if(v==="mood")loadMood();else if(v==="lessons")loadLessons();else if(v==="world")window.MikaelWorldHQ?.load();else if(v==="garden")window.MikaelGardenHQ?.load();else if(v==="taxes")window.MikaelTaxHQ?.load();else if(v!=="mizzygram")loadChess()}
 // Dedicated navigation controller: desktop independently scrollable; mobile collapsible.
 const navToggle=$("hqMobileNavToggle"),navClose=$("hqNavClose"),navScrim=$("hqNavScrim"),featureNav=$("hqFeatureNav");
+// Mobile discovery remains client-only; it never modifies HQ actions, credentials or the backend.
+const hqNavSearch=$("hqNavSearch"),hqNavCount=$("hqNavCount"),hqNavEmpty=$("hqNavEmpty"),hqNavScrollHint=$("hqNavScrollHint");
+const hqFeatureButtons=Array.from(featureNav?.querySelectorAll('button[data-view]')||[]);
+function hqUpdateNavResults(){
+ const q=String(hqNavSearch?.value||'').trim().toLocaleLowerCase();
+ let shown=0;
+ for(const btn of hqFeatureButtons){const match=btn.textContent.toLocaleLowerCase().includes(q);btn.hidden=!match;if(match)shown++;}
+ if(hqNavCount)hqNavCount.textContent=`${shown} of ${hqFeatureButtons.length} features${q?' found':' available'}`;
+ if(hqNavEmpty)hqNavEmpty.hidden=shown!==0;
+ hqUpdateNavScrollHint();
+}
+function hqUpdateNavScrollHint(){
+ if(!hqNavScrollHint||!featureNav)return;
+ const extra=featureNav.scrollHeight>featureNav.clientHeight+3;
+ const atEnd=featureNav.scrollTop+featureNav.clientHeight>=featureNav.scrollHeight-8;
+ hqNavScrollHint.hidden=!(window.matchMedia('(max-width:1024px)').matches&&extra&&!atEnd);
+}
+hqNavSearch?.addEventListener('input',()=>{if(featureNav)featureNav.scrollTop=0;hqUpdateNavResults()});
+featureNav?.addEventListener('scroll',hqUpdateNavScrollHint,{passive:true});
 function hqSetMenu(open){
- const mobile=window.matchMedia('(max-width:800px)').matches;
+ const mobile=window.matchMedia('(max-width:1024px)').matches;
  const next=Boolean(open&&mobile&&!$("app").classList.contains("hidden"));
  document.body.classList.toggle('hq-nav-open',next);
+ if(next&&hqNavSearch){hqNavSearch.value='';hqUpdateNavResults();if(featureNav)featureNav.scrollTop=0;}
+ if(!next&&hqNavScrollHint)hqNavScrollHint.hidden=true;
+ if(next)requestAnimationFrame(hqUpdateNavScrollHint);
  if(navToggle)navToggle.setAttribute('aria-expanded',String(next));
  if(featureNav)featureNav.setAttribute('aria-hidden',String(false));
  if(next){navClose?.focus({preventScroll:true});}else if(document.activeElement===navClose){navToggle?.focus({preventScroll:true});}
@@ -17,7 +39,7 @@ navToggle?.addEventListener('click',()=>hqSetMenu(!document.body.classList.conta
 navClose?.addEventListener('click',()=>hqSetMenu(false));
 navScrim?.addEventListener('click',()=>hqSetMenu(false));
 window.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.classList.contains('hq-nav-open'))hqSetMenu(false)});
-window.addEventListener('resize',()=>{if(!window.matchMedia('(max-width:800px)').matches)hqSetMenu(false)});
+window.addEventListener('resize',()=>{if(!window.matchMedia('(max-width:1024px)').matches)hqSetMenu(false);hqUpdateNavScrollHint()});
 featureNav?.addEventListener('click',e=>{if(e.target.closest('[data-view]'))hqSetMenu(false)});
 
 document.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>{document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));b.classList.add("active");show(b.dataset.view)});document.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>show(b.dataset.go));
