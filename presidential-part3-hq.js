@@ -9,6 +9,9 @@ function bank(){
  const disputes=state?.disputes||[];
  const pending=disputes.filter(x=>x.status==='pending');
  const resolved=disputes.filter(x=>x.status!=='pending');
+ const counter=document.getElementById('hqBankPendingBadge');
+ if(counter){counter.hidden=!pending.length;counter.textContent=pending.length>99?'99+':String(pending.length);}
+ 
  const item=x=>`<article class="p3hqCase" data-bank-case="${esc(x.id)}">
    <div class="p3hqCaseHead"><b>${esc(x.description||'Bank of Micky charge')}</b><span class="p3hqTag p3hqTag-${esc(x.status)}">${x.status==='pending'?'Awaiting decision':x.status==='refunded'?'Refund approved':'Dispute rejected'}</span></div>
    <p><strong>${Math.abs(Number(x.amount))} MB</strong> · <small>Case ${esc(x.id)} · Submitted ${esc(x.createdAt||'')}</small></p>
@@ -35,7 +38,7 @@ async function load(){
  if(bankLoading)return;
  bankLoading=true;
  try{const result=await api('p3_hq_state');if(!result.success||!Array.isArray(result.disputes))throw Error('Bank records were not returned by the production Worker.');state=result;notice='';if(bankNotice.startsWith('Could not retrieve'))bankNotice='';}
- catch(e){notice='Could not retrieve Bank/University records: '+e.message;bankNotice=notice;}
+ catch(e){state=null;notice='Could not retrieve Bank/University records: '+e.message;bankNotice=notice;}
  finally{bankLoading=false;bank();finance();university();}
 }
 async function decide(id,decision){
