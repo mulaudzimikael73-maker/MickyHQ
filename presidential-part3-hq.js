@@ -9,6 +9,9 @@ function bank(){
  const disputes=state?.disputes||[];
  const pending=disputes.filter(x=>x.status==='pending');
  const resolved=disputes.filter(x=>x.status!=='pending');
+ const counter=document.getElementById('hqBankPendingBadge');
+ if(counter){counter.hidden=!pending.length;counter.textContent=pending.length>99?'99+':String(pending.length);}
+ 
  const item=x=>`<article class="p3hqCase" data-bank-case="${esc(x.id)}">
    <div class="p3hqCaseHead"><b>${esc(x.description||'Bank of Micky charge')}</b><span class="p3hqTag p3hqTag-${esc(x.status)}">${x.status==='pending'?'Awaiting decision':x.status==='refunded'?'Refund approved':'Dispute rejected'}</span></div>
    <p><strong>${Math.abs(Number(x.amount))} MB</strong> · <small>Case ${esc(x.id)} · Submitted ${esc(x.createdAt||'')}</small></p>
@@ -35,7 +38,7 @@ async function load(){
  if(bankLoading)return;
  bankLoading=true;
  try{const result=await api('p3_hq_state');if(!result.success||!Array.isArray(result.disputes))throw Error('Bank records were not returned by the production Worker.');state=result;notice='';if(bankNotice.startsWith('Could not retrieve'))bankNotice='';}
- catch(e){notice='Could not retrieve Bank/University records: '+e.message;bankNotice=notice;}
+ catch(e){state=null;notice='Could not retrieve Bank/University records: '+e.message;bankNotice=notice;}
  finally{bankLoading=false;bank();finance();university();}
 }
 async function decide(id,decision){
@@ -70,16 +73,16 @@ async function reply(id){
  submitting=true;officeNotice='Sending lecturer response…';university();
  try{
   const result=await api('p3_hq_office_reply',{id,answer});
-  if(result.question?.id!==id||result.question?.status!=='answered')throw Error('The Worker did not confirm the reply.');
+  if(result.question?.id!==id||result.question?.status!=='answered'||result.question?.answer!==answer)throw Error('The Worker did not confirm this exact lecturer answer. Refresh HQ before retrying.');
   let checked=false;
-  try{const v=await api('p3_hq_office_verify',{id});checked=v.status==='answered'&&v.id===id;}catch(e){}
+  try{const v=await api('p3_hq_office_verify',{id});checked=v.success===true&&v.status==='answered'&&v.id===id&&v.answer===answer&&v.device===result.question.device;}catch(e){}
   delete draftReplies[id];
   await load();
   // If a stale KV read arrives after the write, keep the confirmed response visible.
   state=state||{};state.office=Array.isArray(state.office)?state.office:[];
   const i=state.office.findIndex(q=>q.id===id);
   if(i>=0)state.office[i]=result.question;else state.office.unshift(result.question);
-  officeNotice=checked?'✅ Lecturer answer delivered and verified · '+id:'✅ Lecturer answer accepted by the server · '+id+' — pending final synchronisation.';
+  officeNotice=checked?'✅ Lecturer reply saved and read-back verified. Lizzy will see this exact answer in Office Hours after refresh · '+id:'✅ Lecturer reply saved on the server · '+id+' — final read-back is still pending.';
  }catch(e){officeNotice='❌ Reply not delivered: '+e.message+'. Your response draft is retained.';}
  finally{submitting=false;university();}
 }

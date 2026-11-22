@@ -48,8 +48,8 @@ async function action(a,id,btn){
    if(result.order?.id!==id||result.order?.status!=='delivered')throw Error('Delivery was not acknowledged by the server. Your text is saved.');
    clearDraft(id);
    let verified=false;
-   try{const check=await api('p2_hq_delivery_verify',{id});verified=check.status==='delivered'&&check.id===id;}catch(e){/* The write was acknowledged; read-back may be temporarily unavailable. */}
-   notice=verified?'✅ Delivered to Lizzy’s Open When folder · '+id:'✅ Server accepted the letter · '+id+' — awaiting cross-site synchronisation. Use Refresh to verify.';
+   try{const check=await api('p2_hq_delivery_verify',{id});verified=check.success===true&&check.status==='delivered'&&check.id===id&&check.product===o.product&&check.device===result.order.device&&JSON.stringify(check.content)===JSON.stringify(result.order.content);}catch(e){/* Acknowledgement is saved; read-back may temporarily be stale. */}
+   notice=verified?'✅ Saved and independently verified in LizzyOS V3. Lizzy can read it in Open When after refresh · '+id:'✅ Server saved the letter · '+id+' — final read-back is still pending. Refresh to verify.';
    const next=await api('p2_hq_state').catch(()=>null);
    if(next){state=next;const found=state.orders?.find(x=>x.id===id);if(!found||found.status!=='delivered'){state.orders=state.orders||[];state.orders=state.orders.filter(x=>x.id!==id);state.orders.unshift(result.order);}}
    else{state=state||{orders:[],questions:[]};state.orders=(state.orders||[]).filter(x=>x.id!==id);state.orders.unshift(result.order);}

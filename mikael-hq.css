@@ -171,3 +171,25 @@
 /* HQ chess: readable white and black pieces on either square colour. */
 #chessBoard .sq.white-piece{color:#fffdf7!important;text-shadow:0 1px 0 #17151b,1px 0 0 #17151b,-1px 0 0 #17151b,0 -1px 0 #17151b,2px 2px 1px #17151baa!important}
 #chessBoard .sq.black-piece{color:#16131d!important;text-shadow:0 1px 0 #fffef1,-1px 0 0 #fffef1,1px 0 0 #fffef1,0 -1px 0 #fffef1!important}
+
+/* Bank of Micky R3: prominent permanent navigation and safe mobile layout. */
+#app>aside nav .hqBankNavPrimary{order:-100!important;background:linear-gradient(125deg,#41283a,#743b58)!important;border:1px solid #f7b7d6!important;color:#fff!important;box-shadow:0 1px 10px #0003;font-weight:800!important;position:sticky;top:0;z-index:2}
+#app>main>header{display:flex;flex-wrap:wrap;align-items:center;gap:9px}
+#hqBankHeaderButton{order:3;margin-left:auto;padding:10px 14px;border-radius:12px;border:1px solid #ffc1dd;background:#6c3153;color:#fff;font-size:13px;font-weight:800;min-height:44px;cursor:pointer;flex-shrink:0}
+#hqBankHeaderButton.active{background:#a04f7c;border-color:#fff}
+#hqBankPendingBadge{display:inline-block;margin-left:4px;border-radius:90px;padding:2px 7px;background:#fff;color:#592643;font-size:11px}
+#hqBankPendingBadge[hidden]{display:none!important}
+.hqBankLettersQuick{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:15px 16px;margin:0 0 18px;border:1px solid #dfa0c1;background:#51283b55;border-radius:15px}
+.hqBankLettersQuick p{font-size:13px;line-height:1.45;color:#f5d9e8;margin:5px 0 0}
+.hqBankLettersQuick button{border:1px solid #ffd7e9;background:#ad5f8c;color:#fff;font-weight:800;border-radius:11px;padding:12px 16px;white-space:nowrap;cursor:pointer;min-height:44px}
+@media(max-width:800px){
+ #hqBankHeaderButton{order:2!important;margin-left:auto!important;min-height:42px;padding:8px 11px;font-size:12px}
+ #app>main>header h2{flex:1 1 100%;order:4!important}
+ #app>main>header .hqPhoneQuickNav{order:5!important}
+ .hqBankLettersQuick{align-items:stretch;flex-direction:column}
+ .hqBankLettersQuick button{width:100%}
+}
+@media(max-width:370px){#hqBankHeaderButton{font-size:11px;padding:8px 9px}}
+
+/* Keep dispute content above the fold while banking on a phone. */
+@media(max-width:800px){body.hq-bank-active #app>main>header .hqPhoneQuickNav{display:none!important}body.hq-bank-active #app>main>header{margin-bottom:12px}}
