@@ -1,0 +1,1 @@
+Changed-files-only patch for the ORIGINAL full Micky HQ website, based on provided source MickyHQ-main (9).zip. MERGE this zip into the complete existing website project root and deploy that entire combined site. This zip alone is not a deployable full website. Keep a backup; do not delete old files or user data. This R2 package supersedes the uninstalled R1 package.

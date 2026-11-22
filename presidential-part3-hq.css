@@ -1,0 +1,21 @@
+.p3hqSection{padding:16px;margin:20px 0;border:1px solid #ffffff2a;border-radius:13px;overflow-wrap:anywhere}.p3hqSection h2{margin:8px 0}.p3hqSection small{letter-spacing:.06em;opacity:.8}.p3hqPanel{padding:13px;border:1px solid #ffffff23;border-radius:10px;margin:12px 0}.p3hqItem{padding:12px;border-bottom:1px solid #ffffff26;margin:8px 0}.p3hqSection textarea{width:100%;min-height:75px;border-radius:8px;padding:10px;margin:9px 0}.p3hqSection button{padding:9px 13px;border-radius:9px;margin:4px}.p3hqNotice{color:#ffd6d6}
+
+/* Dedicated Bank of Micky management tab, both desktop and phone */
+#bank .p3hqBankHead{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+#bank .p3hqBankHead h3{margin:0 0 4px}#bank .p3hqBankHead p{font-size:14px;opacity:.8}
+#bank .p3hqBankStats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:18px 0}
+#bank .p3hqBankStats>div{border:1px solid #ffffff26;background:#ffffff0b;border-radius:14px;padding:16px}
+#bank .p3hqBankStats strong{display:block;font-size:26px}#bank .p3hqBankStats small{font-size:12px;color:#e3c6d5}
+#bank .p3hqCase{border:1px solid #ffffff25;border-radius:16px;padding:16px;margin:12px 0;background:#ffffff0d;overflow-wrap:anywhere}
+#bank .p3hqCaseHead{display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between;align-items:center}
+#bank .p3hqTag{font-size:12px;border:1px solid #ffffff3b;border-radius:99px;padding:5px 9px}
+#bank .p3hqTag-pending{color:#ffe6aa}#bank .p3hqTag-refunded{color:#9defc1}#bank .p3hqTag-upheld{color:#ffaaaa}
+#bank .p3hqCase p{line-height:1.55}#bank .p3hqReason{background:#ffffff08;padding:12px;border-radius:9px}
+#bank .p3hqCase textarea{margin:8px 0 10px;min-height:92px}#bank .p3hqDecisionButtons{display:flex;flex-wrap:wrap;gap:10px}
+#bank .p3hqDecisionButtons button{flex:1;min-width:170px;min-height:46px;margin:0;background:#fff2;color:#fff;border:1px solid #ffffff47;font-weight:700}
+#bank .p3hqDecisionButtons button[data-bank-decision=refund]{border-color:#91e2b390;background:#2d936822}#bank .p3hqDecisionButtons button[data-bank-decision=uphold]{border-color:#f6a1a188;background:#b94b4b22}
+#bank .p3hqDecision{white-space:pre-wrap}#bank .p3hqHistory{margin-top:20px}#bank .p3hqHistory summary{cursor:pointer;font-weight:700;padding:10px 0}
+#bank .p3hqEmpty{padding:15px;border:1px dashed #ffffff44;border-radius:12px}
+#bank .p3hqNotice{min-height:24px;line-height:1.6}
+#bank [data-p3-bank-refresh]{border:1px solid #ffffff42;background:#ffffff17;color:#fff;border-radius:11px;padding:10px 15px;cursor:pointer;font-weight:700}
+@media(max-width:600px){#bank .p3hqBankStats{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}#bank .p3hqBankStats>div{padding:10px}#bank .p3hqBankStats strong{font-size:22px}#bank .p3hqBankStats small{font-size:11px}#bank .p3hqDecisionButtons{flex-direction:column}#bank .p3hqDecisionButtons button{width:100%}}

@@ -167,3 +167,7 @@
   #app>main #uomHQMount,#app>main #tinyHQMount{min-width:0;max-width:100%;overflow-x:clip}
 }
 @media(max-width:340px){#app>main>header .hqPhoneQuickNav button{font-size:11px;padding:9px 5px}}
+
+/* HQ chess: readable white and black pieces on either square colour. */
+#chessBoard .sq.white-piece{color:#fffdf7!important;text-shadow:0 1px 0 #17151b,1px 0 0 #17151b,-1px 0 0 #17151b,0 -1px 0 #17151b,2px 2px 1px #17151baa!important}
+#chessBoard .sq.black-piece{color:#16131d!important;text-shadow:0 1px 0 #fffef1,-1px 0 0 #fffef1,1px 0 0 #fffef1,0 -1px 0 #fffef1!important}
